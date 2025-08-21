@@ -7,7 +7,8 @@ import { componentTagger } from "lovable-tagger";
 export default defineConfig(({ mode }) => {
 	const isGitHubPages = process.env.DEPLOY_TARGET === "gh-pages";
 	return {
-		base: isGitHubPages ? "/portfolio/" : "/",
+		// Use relative paths on Netlify to avoid absolute path issues
+		base: isGitHubPages ? "/portfolio/" : "./",
 		server: {
 			host: true,
 			port: 5173,
