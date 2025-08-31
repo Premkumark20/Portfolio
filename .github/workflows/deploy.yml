@@ -1,10 +1,11 @@
-name: Deploy to GitHub Pages
+# This file is disabled to prevent conflicts with manual gh-pages deployment
+# Rename back to deploy.yml if you want to use GitHub Actions instead
+
+name: Deploy to GitHub Pages (DISABLED)
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  # Disabled - no triggers
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -47,4 +48,4 @@ jobs:
         
     - name: Deploy to GitHub Pages
       id: deployment
-      uses: actions/deploy-pages@v4 
+      uses: actions/deploy-pages@v4
