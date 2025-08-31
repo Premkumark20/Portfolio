@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🚀 Prem Kumar K - Portfolio Website
 
 A modern, responsive portfolio website built with React, TypeScript, and Tailwind CSS. Showcasing my skills, projects, and experience as a Computer Science & Engineering student specializing in Cloud Computing.
@@ -223,3 +224,6 @@ This project is open source and available under the [MIT License](LICENSE).
 ⭐ **Star this repository if you found it helpful!**
 
 *Built with ❤️ by Prem Kumar K*
+=======
+# Portfolio
+>>>>>>> 8298474582cecf16653f3fbf619dc54d0ddad2a6
