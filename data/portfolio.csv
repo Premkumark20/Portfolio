@@ -1,0 +1,55 @@
+field,value
+name,PREM KUMAR K
+title,Computer Science & Engineering Student
+specialization,Specializing in Cloud Computing
+education,SRM Institute of Science and Technology, Ramapuram | Class of 2027
+cgpa,8.44
+email,premkumark182005@gmail.com
+phone,+91 7358266257
+address,Chennai, Tamil Nadu
+github_username,premkumark20
+github_link,https://github.com/premkumark20
+linkedin_username,premkumar-k-506922299
+linkedin_link,https://www.linkedin.com/in/premkumar-k-506922299/
+leetcode_username,premkumark20
+leetcode_link,https://leetcode.com/u/premkumark20/
+project1_title,Trip Budget Management System
+project1_description,A comprehensive web-based application that allows users to plan trips by setting budgets, recording expenses, and tracking spending across categories to ensure cost-effective travel. Features real-time expense tracking and visual budget comparisons.
+project1_tech,Python (Flask),HTML/CSS,Render,Web Development
+project1_type,Team Project
+project1_duration,Oct 2024 - Dec 2025
+project1_category,Web Development / Expense Management
+project1_github,https://github.com/Premkumark20/Trip_Budget_System
+project1_live,https://trip-budget-system.onrender.com/
+project2_title,Payroll Management System
+project2_description,A secure client-server Payroll Management System with role-based access for employees and administrators. Features attendance tracking, automated salary generation, and comprehensive payroll report generation.
+project2_tech,Python (Flask),SQLite,HTML/CSS,PythonAnywhere
+project2_type,Team Project
+project2_duration,Feb 2025 - Apr 2025
+project2_category,Web Development / Payroll Automation
+project2_github,https://github.com/Premkumark20/payroll-dbms
+project2_live,https://premkumark20.github.io/payroll-dbms
+project3_title,SmartBank ATM System
+project3_description,A terminal-based ATM system with secure login, balance inquiry, deposit, withdrawal, and transaction history features. Integrated with MySQL for real-time data handling and includes transaction logging with security features.
+project3_tech,Python,MySQL,CLI,Database Management
+project3_type,Self Project
+project3_duration,May 2023 - Oct 2023
+project3_category,Banking and Financial Systems
+cert1_title,Python (Basic)
+cert1_provider,HackerRank
+cert1_date,May 2025
+cert1_id,FCBD185CAAF2
+cert1_link,https://www.hackerrank.com/certificates/fcbd185caaf2
+cert1_level,Basic
+cert2_title,SQL (Advanced)
+cert2_provider,HackerRank
+cert2_date,May 2025
+cert2_id,0EF7C15C6361
+cert2_link,https://www.hackerrank.com/certificates/0ef7c15c6361
+cert2_level,Advanced
+cert3_title,Problem Solving (Basic)
+cert3_provider,HackerRank
+cert3_date,Oct 2024
+cert3_id,D10E8DA3EEF5
+cert3_link,https://www.hackerrank.com/certificates/d10e8da3eef5
+cert3_level,Basic 
