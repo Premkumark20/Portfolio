@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Github, Linkedin, Mail, Phone, MapPin } from "lucide-react";
 import { useEffect, useState } from "react";
 import { fetchPortfolioData } from "@/lib/csvData";
-import profileImage from "/images/profile.jpg";
+import profileImage from "@/assets/profile.jpg";
 
 const Hero = () => {
   const [particles, setParticles] = useState<Array<{id: number, x: number, y: number, delay: number}>>([]);
