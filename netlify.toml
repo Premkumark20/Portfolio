@@ -1,6 +1,44 @@
 [build]
 	command = "npm run build"
 	publish = "dist"
+	functions = "netlify/functions"
+
+[build.environment]
+	NODE_VERSION = "18"
+	NPM_FLAGS = "--production=false"
+
+# Cache optimization for faster builds
+[build.processing]
+	skip_processing = false
+
+[build.processing.css]
+	bundle = true
+	minify = true
+
+[build.processing.js]
+	bundle = true
+	minify = true
+
+[build.processing.html]
+	pretty_urls = true
+
+# Function-specific configurations
+[functions]
+	directory = "netlify/functions"
+	node_bundler = "esbuild"
+
+# Function timeout and memory settings
+[functions."portfolio-data"]
+	timeout = 10
+
+[functions."contact"]
+	timeout = 15
+
+[functions."analytics"]
+	timeout = 10
+
+[functions."health"]
+	timeout = 5
 
 [[redirects]]
 	from = "/*"
@@ -11,4 +49,12 @@
 [[headers]]
 	for = "/assets/*"
 	[headers.values]
-		Cache-Control = "public, max-age=31536000, immutable" 
+		Cache-Control = "public, max-age=31536000, immutable"
+
+# Headers for CSV data to prevent caching issues
+[[headers]]
+	for = "/data/*"
+	[headers.values]
+		Cache-Control = "no-cache, no-store, must-revalidate"
+		Pragma = "no-cache"
+		Expires = "0"

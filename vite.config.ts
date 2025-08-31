@@ -4,11 +4,10 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => {
-	const isGitHubPages = process.env.DEPLOY_TARGET === "gh-pages";
+export default defineConfig(({ mode, command }) => {
 	return {
-		// Use relative paths on Netlify to avoid absolute path issues
-		base: isGitHubPages ? "/portfolio/" : "./",
+		// Base path will be set via command line for gh-pages deployment
+		base: command === 'build' ? '/portfolio/' : './',
 		server: {
 			host: true,
 			port: 5173,

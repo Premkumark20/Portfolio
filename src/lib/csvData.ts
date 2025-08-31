@@ -186,14 +186,34 @@ const getDefaultData = (): PortfolioData => ({
 
 export const fetchPortfolioData = async (): Promise<PortfolioData> => {
   try {
-    const response = await fetch('/data/portfolio.csv');
+    // Add cache-busting parameter to ensure fresh data
+    const cacheBuster = new Date().getTime();
+    const response = await fetch(`/data/portfolio.csv?v=${cacheBuster}`, {
+      cache: 'no-cache',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
+    
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      console.warn(`CSV fetch failed with status ${response.status}, using default data`);
+      return getDefaultData();
     }
+    
     const csvText = await response.text();
-    return parseCSVData(csvText);
+    if (!csvText.trim()) {
+      console.warn('CSV file is empty, using default data');
+      return getDefaultData();
+    }
+    
+    const parsedData = parseCSVData(csvText);
+    console.log('Successfully loaded portfolio data from CSV');
+    return parsedData;
   } catch (error) {
     console.error('Error fetching portfolio data:', error);
+    console.log('Falling back to default data');
     return getDefaultData();
   }
-}; 
+};

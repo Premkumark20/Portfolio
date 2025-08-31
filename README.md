@@ -2,14 +2,14 @@
 
 A modern, responsive portfolio website built with React, TypeScript, and Tailwind CSS. Showcasing my skills, projects, and experience as a Computer Science & Engineering student specializing in Cloud Computing.
 
-[![Portfolio Preview](https://img.shields.io/badge/Status-Live-brightgreen)](https://premkumark20.github.io/portfolio)
+[![Portfolio Preview](https://img.shields.io/badge/Status-Live-brightgreen)](https://premkumark20.github.io/Portfolio/)
 [![React](https://img.shields.io/badge/React-18.3.1-blue)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-blue)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4.17-38B2AC)](https://tailwindcss.com/)
 
 ## 🌐 Live Demo
 
-**[View Portfolio →](https://premkumark20.github.io/portfolio)**
+**View Portfolio → [https://premkumark20.github.io/Portfolio/](https://premkumark20.github.io/Portfolio/)**
 
 ## 📋 Table of Contents
 
@@ -82,13 +82,14 @@ I'm **Prem Kumar K**, a passionate Computer Science & Engineering student at SRM
 - **Description**: Secure client-server system with role-based access control
 - **Tech Stack**: Python (Flask), SQLite, HTML/CSS, PythonAnywhere
 - **Features**: Attendance tracking, automated salary generation, payroll reports
-- **Live Demo**: [View Project](https://premkumark20.github.io/payroll-dbms)
+- **Live Demo**: [View Project](https://premkumark20.pythonanywhere.com/)
 - **GitHub**: [Source Code](https://github.com/Premkumark20/payroll-dbms)
 
 ### 3. SmartBank ATM System
 - **Description**: Terminal-based ATM system with secure banking operations
 - **Tech Stack**: Python, MySQL, CLI
 - **Features**: Secure login, balance inquiry, deposit/withdrawal, transaction history
+- **GitHub**: [Source Code](https://github.com/Premkumark20/SmartBank-ATM-System)
 - **Type**: Self Project
 
 ## 🏆 Certifications
@@ -101,8 +102,8 @@ I'm **Prem Kumar K**, a passionate Computer Science & Engineering student at SRM
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/premkumark20/portfolio.git
-   cd portfolio
+   git clone https://github.com/Premkumark20/Portfolio.git
+   cd Portfolio
    ```
 
 2. **Install dependencies**
@@ -143,6 +144,13 @@ npm run preview
 npm run lint
 ```
 
+### Deployment to GitHub Pages
+```bash
+# Build and deploy to GitHub Pages
+npm run build
+npm run deploy
+```
+
 ### Customization
 1. Update portfolio data in `public/data/portfolio.csv`
 2. Replace profile image in `public/images/profile.jpg`
@@ -152,7 +160,7 @@ npm run lint
 ## 📁 Project Structure
 
 ```
-portfolio/
+Portfolio/
 ├── public/
 │   ├── data/
 │   │   └── portfolio.csv          # Portfolio data
@@ -182,7 +190,8 @@ portfolio/
 │   └── main.tsx                  # Entry point
 ├── package.json                  # Dependencies and scripts
 ├── tailwind.config.ts           # Tailwind configuration
-└── vite.config.ts               # Vite configuration
+├── vite.config.ts               # Vite configuration
+└── README.md                    # Project documentation
 ```
 
 ## 🤝 Contributing
@@ -201,8 +210,9 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 - **Phone**: +91 7358266257
 - **Location**: Chennai, Tamil Nadu, India
 - **LinkedIn**: [Prem Kumar K](https://www.linkedin.com/in/premkumar-k-506922299/)
-- **GitHub**: [premkumark20](https://github.com/premkumark20)
+- **GitHub**: [Premkumark20](https://github.com/Premkumark20)
 - **LeetCode**: [premkumark20](https://leetcode.com/u/premkumark20/)
+- **Portfolio**: [https://premkumark20.github.io/Portfolio/](https://premkumark20.github.io/Portfolio/)
 
 ## 📄 License
 
@@ -212,4 +222,4 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ⭐ **Star this repository if you found it helpful!**
 
-*Built with ❤️ by Prem Kumar K* 
+*Built with ❤️ by Prem Kumar K*
