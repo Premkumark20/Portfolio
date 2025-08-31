@@ -54,7 +54,7 @@ const Hero = () => {
             <div className="relative">
               <div className="gradient-border rounded-full">
                 <img 
-                  src="/images/profile.jpg"
+                  src="./images/profile.jpg"
                   alt="Prem Kumar K - Professional Portrait"
                   className="w-56 h-56 sm:w-64 sm:h-64 md:w-72 md:h-72 lg:w-80 lg:h-80 xl:w-96 xl:h-96 rounded-full object-cover object-[center_40%] relative z-10 border-4 border-primary/20"
                 />
