@@ -134,13 +134,20 @@ const Hero = () => {
                 size="lg"
                 className="px-6 sm:px-8 py-4 sm:py-6 text-base sm:text-lg border-primary/50 hover:border-primary text-primary-glow hover:bg-primary/10 transform hover:scale-105 transition-all duration-300"
               >
-                <a 
-                  href="/Portfolio/resume/Prem%20kumar%20Resume.pdf" 
-                  download="Prem_Kumar_Resume.pdf"
-                  type="application/pdf"
+                <button 
+                  onClick={() => {
+                    const link = document.createElement('a');
+                    link.href = '/Portfolio/resume/Prem%20kumar%20Resume.pdf';
+                    link.download = 'Prem_Kumar_Resume.pdf';
+                    link.target = '_blank';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                  className="w-full h-full text-left"
                 >
                   Download Resume
-                </a>
+                </button>
               </Button>
             </div>
 
