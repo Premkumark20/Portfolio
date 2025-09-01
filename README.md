@@ -223,6 +223,5 @@ This project is open source and available under the [MIT License](LICENSE).
 ⭐ **Star this repository if you found it helpful!**
 
 *Built with ❤️ by Prem Kumar K*
-=======
-# Portfolio
->>>>>>> 8298474582cecf16653f3fbf619dc54d0ddad2a6
+
+---
