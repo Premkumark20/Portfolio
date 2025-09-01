@@ -186,9 +186,18 @@ const getDefaultData = (): PortfolioData => ({
 
 export const fetchPortfolioData = async (): Promise<PortfolioData> => {
   try {
+    // Cloud storage CSV URL - replace with your Google Drive or OneDrive share link
+    // For Google Drive: Use the direct download link format
+    // For OneDrive: Use the direct download link format
+    const CSV_URL = process.env.VITE_CSV_URL || '/data/portfolio.csv';
+    
     // Add cache-busting parameter to ensure fresh data
     const cacheBuster = new Date().getTime();
-    const response = await fetch(`/data/portfolio.csv?v=${cacheBuster}`, {
+    const csvUrl = CSV_URL.includes('http') 
+      ? `${CSV_URL}&cachebust=${cacheBuster}`
+      : `${CSV_URL}?v=${cacheBuster}`;
+    
+    const response = await fetch(csvUrl, {
       cache: 'no-cache',
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',

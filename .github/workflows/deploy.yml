@@ -37,6 +37,7 @@ jobs:
       run: npm run build
       env:
         DEPLOY_TARGET: gh-pages
+        VITE_CSV_URL: ${{ secrets.VITE_CSV_URL }}
       
     - name: Setup Pages
       uses: actions/configure-pages@v4
