@@ -2,7 +2,7 @@
 
 A modern, responsive portfolio website built with React, TypeScript, and Tailwind CSS. Showcasing my skills, projects, and experience as a Computer Science & Engineering student specializing in Cloud Computing.
 
-[![Portfolio Preview](https://img.shields.io/badge/Status-Live-brightgreen)](https://premkumark20.github.io/Portfolio/)
+[![Portfolio Preview](https://img.shields.io/badge/Status-Live-brightgreen)](https://pkportfolioapp.netlify.app/)
 [![React](https://img.shields.io/badge/React-18.3.1-blue)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-blue)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4.17-38B2AC)](https://tailwindcss.com/)
