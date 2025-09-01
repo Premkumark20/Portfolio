@@ -135,7 +135,7 @@ const Hero = () => {
                 className="px-6 sm:px-8 py-4 sm:py-6 text-base sm:text-lg border-primary/50 hover:border-primary text-primary-glow hover:bg-primary/10 transform hover:scale-105 transition-all duration-300"
               >
                 <a 
-                  href="./resume/Prem kumar Resume.pdf"
+                  href="https://github.com/premkumark20/Portfolio/raw/main/public/resume/Prem%20kumar%20Resume.pdf"
                   download="Prem_Kumar_Resume.pdf"
                   type="application/pdf"
                   target="_blank"
