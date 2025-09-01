@@ -136,10 +136,12 @@ const Hero = () => {
               >
                 <a 
                   href="https://premkumark20.github.io/Portfolio/resume/Prem%20kumar%20Resume.pdf"
+                  download="Prem_Kumar_Resume.pdf"
+                  type="application/pdf"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  View Resume
+                  Download Resume
                 </a>
               </Button>
             </div>
