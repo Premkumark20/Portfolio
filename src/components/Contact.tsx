@@ -35,7 +35,7 @@ const Contact = () => {
       icon: MapPin,
       label: "Location",
       value: portfolioData?.address || "Chennai, Tamil Nadu",
-      href: "https://www.google.com/maps/search/?api=1&query=Chennai%2C%20Tamil%20Nadu",
+      href: "https://www.google.com/maps/search/?api=1&query=SRM+Institute+of+Science+and+Technology+Ramapuram",
       color: "text-red-500"
     }
   ];
