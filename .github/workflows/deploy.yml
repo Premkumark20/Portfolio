@@ -1,51 +1,38 @@
-# This file is disabled to prevent conflicts with manual gh-pages deployment
-# Rename back to deploy.yml if you want to use GitHub Actions instead
-
-name: Deploy to GitHub Pages (DISABLED)
+name: Deploy to GitHub Pages
 
 on:
-  # Disabled - no triggers
+  push:
+    branches: [ main ]   # trigger when main is updated
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
+  contents: write        # allow pushing to gh-pages
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-      
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18'
         cache: 'npm'
-        
+
     - name: Install dependencies
       run: npm ci
-      
+
     - name: Build
       run: npm run build
       env:
-        DEPLOY_TARGET: gh-pages
-      
-    - name: Setup Pages
-      uses: actions/configure-pages@v4
-      
-    - name: Upload artifact
-      uses: actions/upload-pages-artifact@v3
+        VITE_CSV_URL: https://1drv.ms/x/c/910f63d4d3e8faa0/ETGAEciqICBJgbpClGVq2IsBg5GF8wOvuWyHdfchg_piig?e=nIsv55&download=1
+
+    - name: Deploy to gh-pages branch
+      uses: peaceiris/actions-gh-pages@v3
       with:
-        path: './dist'
-        
-    - name: Deploy to GitHub Pages
-      id: deployment
-      uses: actions/deploy-pages@v4
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./dist   # adjust if your build output folder is different
+        publish_branch: gh-pages
