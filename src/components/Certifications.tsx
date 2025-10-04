@@ -1,14 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Award, ExternalLink, Calendar, Eye } from "lucide-react";
+import { Award, ExternalLink, Calendar } from "lucide-react";
 import { useEffect, useState } from "react";
 import { fetchPortfolioData } from "@/lib/csvData";
 
 const Certifications = () => {
   const [certifications, setCertifications] = useState<any[]>([]);
   const [showAll, setShowAll] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -78,26 +77,16 @@ const Certifications = () => {
                 </div>
               </div>
               
-              <div className="flex gap-2">
-                <Button size="sm" asChild className="flex-1 cursor-pointer">
-                  <a href={cert.link} target="_blank" rel="noopener noreferrer" onClick={(e) => {
-                    if (!cert.link || cert.link.trim() === '' || cert.link === '#') {
-                      e.preventDefault();
-                    }
-                  }}>
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    View Certificate
-                  </a>
-                </Button>
-                {cert.image && (
-                  <Button size="sm" variant="outline" asChild className="cursor-pointer">
-                    <a href={`${import.meta.env.BASE_URL}${cert.image}`} target="_blank" rel="noopener noreferrer">
-                      <Eye className="w-4 h-4 mr-2" />
-                      View Image
-                    </a>
-                  </Button>
-                )}
-              </div>
+              <Button size="sm" asChild className="w-full cursor-pointer">
+                <a href={cert.link} target="_blank" rel="noopener noreferrer" onClick={(e) => {
+                  if (!cert.link || cert.link.trim() === '' || cert.link === '#') {
+                    e.preventDefault();
+                  }
+                }}>
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  View Certificate
+                </a>
+              </Button>
             </CardContent>
           </Card>
         ))}

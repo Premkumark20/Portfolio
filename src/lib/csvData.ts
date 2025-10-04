@@ -32,8 +32,8 @@ export interface PortfolioData {
     certificateId: string;
     link: string;
     level: string;
-    image?: string;
   }>;
+}
 
 export const parseCSVData = (csvText: string): PortfolioData => {
   try {
@@ -81,7 +81,6 @@ export const parseCSVData = (csvText: string): PortfolioData => {
           certificateId: data[`cert${i}_id`] || '',
           link: data[`cert${i}_link`] || '',
           level: data[`cert${i}_level`] || '',
-          image: data[`cert${i}_image`] || undefined,
         });
       }
     }
@@ -165,7 +164,6 @@ const getDefaultData = (): PortfolioData => ({
       certificateId: "FCBD185CAAF2",
       link: "https://www.hackerrank.com/certificates/fcbd185caaf2",
       level: "Basic",
-      image: "/images/certificates/python-basic.png",
     },
     {
       title: "SQL (Advanced)",
@@ -174,7 +172,6 @@ const getDefaultData = (): PortfolioData => ({
       certificateId: "0EF7C15C6361",
       link: "https://www.hackerrank.com/certificates/0ef7c15c6361",
       level: "Advanced",
-      image: "/images/certificates/sql-advanced.png",
     },
     {
       title: "Problem Solving (Basic)",
@@ -183,7 +180,6 @@ const getDefaultData = (): PortfolioData => ({
       certificateId: "D10E8DA3EEF5",
       link: "https://www.hackerrank.com/certificates/d10e8da3eef5",
       level: "Basic",
-      image: "/images/certificates/problem-solving-basic.png",
     }
   ],
 });
