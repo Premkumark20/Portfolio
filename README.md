@@ -33,7 +33,7 @@ I'm **Prem Kumar K**, a passionate Computer Science & Engineering student at SRM
 - **Cloud Computing**: Learning and implementing cloud-based solutions and deployment strategies
 
 ### 📊 Quick Stats
-- **CGPA**: 8.44/10
+- **CGPA**: 8.53/10
 - **Projects**: 3+ completed
 - **Certifications**: 3+ earned
 - **Specialization**: Cloud Computing
