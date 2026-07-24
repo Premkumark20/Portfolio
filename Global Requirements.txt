@@ -1,0 +1,17 @@
+For Node.js projects:
+
+* Use pnpm, never npm.
+* Shared package store location: D:\Libraries\pnpm-store
+* Configure pnpm to use the shared store.
+* Reuse packages from the shared store whenever possible.
+* Do not download duplicate packages if they already exist in the shared store.
+* Keep only the required pnpm-generated node_modules links inside the project.
+* Do not create unnecessary local package copies.
+
+For Python projects:
+
+* Use pip.
+* Shared package repository: D:\Libraries\python_packages
+* Prefer packages from the local repository before downloading from the internet.
+* Download missing packages into D:\Libraries\python_packages for future reuse.
+* Keep project-specific virtual environments only when required.

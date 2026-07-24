@@ -1,0 +1,38 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]   # trigger when main is updated
+  workflow_dispatch:
+
+permissions:
+  contents: write        # allow pushing to gh-pages
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Build
+      run: npm run build:gh-pages
+      env:
+        VITE_CSV_URL: https://1drv.ms/x/c/910f63d4d3e8faa0/ETGAEciqICBJgbpClGVq2IsBg5GF8wOvuWyHdfchg_piig?e=nIsv55&download=1
+
+    - name: Deploy to gh-pages branch
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./dist
+        publish_branch: gh-pages
