@@ -269,7 +269,9 @@ const _doFetch = async (): Promise<PortfolioData> => {
 
   // ── 1. Local static CSV (always bundled with the site — fastest, always works) ──
   try {
-    const res = await fetch(`/data/portfolio.csv?v=${cacheBuster}`, { cache: 'no-store' });
+    const base = (import.meta as any).env?.BASE_URL || './';
+    const localCsvUrl = `${base}data/portfolio.csv?v=${cacheBuster}`;
+    const res = await fetch(localCsvUrl, { cache: 'no-store' });
     if (res.ok) {
       const text = await res.text();
       if (text && text.trim()) {
