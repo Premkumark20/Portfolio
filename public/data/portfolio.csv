@@ -1,0 +1,175 @@
+field,value
+name,PREM KUMAR K
+title,Full Stack Developer
+specialization,Specializing in Cloud Computing
+education,SRM Institute of Science and Technology, Ramapuram | Class of 2027
+cgpa,8.56
+email,premkumark182005@gmail.com
+phone,+91 7358266257
+address,Poonamallee, Chennai, Tamil Nadu
+github_username,Premkumark20
+github_link,https://github.com/Premkumark20
+linkedin_username,Prem Kumar K
+linkedin_link,https://www.linkedin.com/in/premkumar-k-506922299
+leetcode_username,Premkumark20
+leetcode_link,https://leetcode.com/u/Premkumark20/
+status_badge,Open to Work • Full Stack & Backend Roles
+hero_tags,Python, React, FastAPI, Flask
+bio_summary,I build secure, scalable, and modern web applications using Python, React, FastAPI, Flask, and cloud technologies. I enjoy creating AI-powered solutions, backend systems, and responsive user experiences for businesses and startups.
+stat1_label,CGPA
+stat1_value,8.56
+stat1_subtext,SRM Institute of Science & Tech
+stat2_label,Major Projects
+stat2_value,8+
+stat2_subtext,Full Stack & Cloud Applications
+stat3_label,Technical Skills
+stat3_value,15+
+stat3_subtext,Python, React, FastAPI, SQL, Docker
+stat4_label,Certifications
+stat4_value,5+
+stat4_subtext,Python, SQL & Problem Solving
+service1_title,Full Stack & Frontend Engineering
+service1_desc,Custom web applications, responsive user interfaces, and component architectures.
+service1_tech,Modern React & TypeScript Development, Dynamic Dashboard & Data Visualization UI, Tailwind CSS & Glassmorphic Custom Styling, State Management & API Integration
+service2_title,Backend Engineering & API Security
+service2_desc,High-performance Python APIs, database schema design, and secure authentication.
+service2_tech,FastAPI & Flask RESTful Microservices, SQL Database Architecture & Optimization (PostgreSQL/SQLite), JWT & Role-Based Access Control (RBAC) Security, Payload Encryption (AES-256) & SHA-256 Hashing
+service3_title,Cloud AI & Performance Optimization
+service3_desc,Cloud deployment pipelines, AI workflow integrations, and system scalability.
+service3_tech,Containerization & Microservices (Docker & MinIO), AI API Integration (LLM Prompts & Gemini API Workflows), Web Hosting Setup (Render / Netlify & PythonAnywhere), Code Refactoring & Performance Optimization
+skill1_title,Languages
+skill1_items,Python, Java, JavaScript, SQL, HTML, CSS
+skill2_title,Frontend
+skill2_items,React, Bootstrap, Responsive Design, Tailwind CSS
+skill3_title,Backend
+skill3_items,FastAPI, Flask, REST APIs, RBAC, JWT Authentication
+skill4_title,Databases
+skill4_items,PostgreSQL, SQLite, Database Design, SQL Queries
+skill5_title,Tools & Cloud
+skill5_items,Git, GitHub, Docker, Google Cloud, Render, Netlify, PythonAnywhere
+project1_title,Secure File Sharing System using Blockchain & ML
+project1_description,Developed a secure cloud storage platform using FastAPI integrating AES encryption, SHA-256 hashing, Ethereum blockchain, JWT authentication, Redis, PostgreSQL, MinIO, Docker, and machine learning-based anomaly detection for secure file management and real-time activity monitoring.
+project1_tech,Python, FastAPI, Docker, Redis, Ethereum, PostgreSQL, MinIO, JWT
+project1_type,Minor Project
+project1_duration,Jan 2026 – May 2026
+project1_category,Cloud Security & Blockchain
+project1_github,https://github.com/Premkumark20
+project1_live,
+project1_progress,85
+project2_title,AI-Based Crop Recommendation Platform (AgriSense)
+project2_description,Built an AI-powered agricultural platform integrating Google Gemini API for crop disease detection, multilingual recommendations, weather forecasting, marketplace features, and intelligent farming insights.
+project2_tech,React, Python, Gemini API, JWT, MySQL
+project2_type,Smart India Hackathon Project
+project2_duration,Aug 2025 – Oct 2025
+project2_category,AI & Agriculture
+project2_github,https://github.com/Premkumark20
+project2_live,
+project2_progress,70
+project3_title,RentyZone - Rental Management System
+project3_description,Built a full-stack rental management platform with tenant lifecycle management, automated billing, PDF invoice generation, secure authentication, responsive dashboards, and property management features.
+project3_tech,Flask, Bootstrap, SQLite, Python
+project3_type,Self Project
+project3_duration,May 2025 – Aug 2025
+project3_category,Web Development
+project3_github,https://github.com/Premkumark20
+project3_live,
+project3_progress,50
+project4_title,Trip Budget Management System
+project4_description,A comprehensive web-based application that allows users to plan trips by setting budgets, recording expenses, and tracking spending across categories to ensure cost-effective travel. Features real-time expense tracking and visual budget comparisons.
+project4_tech,Python (Flask), HTML/CSS, Render, Web Development
+project4_type,Team Project
+project4_duration,Oct 2024 - Dec 2025
+project4_category,Web Development / Expense Management
+project4_github,https://github.com/Premkumark20/Trip_Budget_System
+project4_live,https://trip-budget-system.onrender.com/
+project4_progress,80
+project5_title,Payroll Management System
+project5_description,A secure client-server Payroll Management System with role-based access for employees and administrators. Features attendance tracking, automated salary generation, and comprehensive payroll report generation.
+project5_tech,Python (Flask), SQLite, HTML/CSS, PythonAnywhere
+project5_type,Team Project
+project5_duration,Feb 2025 - Apr 2025
+project5_category,Web Development / Payroll Automation
+project5_github,https://github.com/Premkumark20/payroll-dbms
+project5_live,https://premkumark20.github.io/payroll-dbms
+project5_progress,95
+project6_title,SmartBank ATM System
+project6_description,A terminal-based ATM system with secure login, balance inquiry, deposit, withdrawal, and transaction history features. Integrated with MySQL for real-time data handling and includes transaction logging with security features.
+project6_tech,Python, MySQL, CLI, Database Management
+project6_type,Self Project
+project6_duration,May 2023 - Oct 2023
+project6_category,Banking and Financial Systems
+project6_github,
+project6_live,
+project6_progress,98
+cert1_title,Smart India Hackathon (Internal SIH)
+cert1_provider,Ministry of Education / SRM IST
+cert1_date,2024 - 2025
+cert1_id,SIH-2024-SRM
+cert1_link,/images/certificates/Internal SIH.pdf
+cert1_level,Hackathons & Innovations
+cert2_title,Full Stack Development
+cert2_provider,Full Stack Engineering
+cert2_date,2024 - 2025
+cert2_id,FSD-2025
+cert2_link,/images/certificates/Full Stack Development.pdf
+cert2_level,Web Development
+cert3_title,Big Data Computing
+cert3_provider,Data Engineering & Analytics
+cert3_date,2024 - 2025
+cert3_id,BDC-2025
+cert3_link,/images/certificates/Big Data Computing.pdf
+cert3_level,Data Engineering
+cert4_title,IMC Certificate
+cert4_provider,Technical Innovation Council
+cert4_date,2025
+cert4_id,IMC-2025
+cert4_link,/images/certificates/IMC Certificate.pdf
+cert4_level,Technical Certification
+cert5_title,Idea Explorer '26
+cert5_provider,Innovation & Research Symposium
+cert5_date,2026
+cert5_id,IE-2026
+cert5_link,/images/certificates/Idea explorer-26.pdf
+cert5_level,Innovation & Research
+cert6_title,Python (Basic)
+cert6_provider,HackerRank
+cert6_date,May 2025
+cert6_id,FCBD185CAAF2
+cert6_link,https://www.hackerrank.com/certificates/fcbd185caaf2
+cert6_level,Basic
+cert7_title,SQL (Advanced)
+cert7_provider,HackerRank
+cert7_date,May 2025
+cert7_id,0EF7C15C6361
+cert7_link,https://www.hackerrank.com/certificates/0ef7c15c6361
+cert7_level,Advanced
+cert8_title,Problem Solving (Basic)
+cert8_provider,HackerRank
+cert8_date,Oct 2024
+cert8_id,D10E8DA3EEF5
+cert8_link,https://www.hackerrank.com/certificates/d10e8da3eef5
+cert8_level,Basic
+edu1_type,Degree
+edu1_institution,SRM Institute of Science and Technology
+edu1_location,Ramapuram, Chennai
+edu1_degree,B.Tech Computer Science and Engineering
+edu1_specialization,Under Graduate
+edu1_period,2023 - 2027
+edu1_score,8.56 CGPA
+edu1_status,Currently Enrolled
+edu2_type,High School
+edu2_institution,St.Joseph's Matriculation Higher Secondary School
+edu2_location,Poonamallee, Chennai
+edu2_degree,HSC (Class XII - Maths with Computer Science)
+edu2_specialization,State Board Higher Secondary Education
+edu2_period,2022 - 2023
+edu2_score,71.30%
+edu2_status,Completed
+edu3_type,Secondary School
+edu3_institution,St.Joseph's Matriculation Higher Secondary School
+edu3_location,Poonamallee, Chennai
+edu3_degree,SSLC (Class X)
+edu3_specialization,State Board Secondary Education
+edu3_period,2020 - 2021
+edu3_score,88.40%
+edu3_status,Completed

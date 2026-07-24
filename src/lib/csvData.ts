@@ -266,61 +266,83 @@ export const fetchPortfolioData = async (): Promise<PortfolioData> => {
 
 const _doFetch = async (): Promise<PortfolioData> => {
   const cacheBuster = `${Date.now()}`;
-  let driveUrl = (import.meta as any).env?.VITE_CSV_URL || (process as any).env?.VITE_CSV_URL;
 
-  // 1. Try Remote Cloud Drive / Google Sheets URL if configured
-  if (driveUrl && driveUrl.trim().startsWith('http')) {
-    let targetUrl = driveUrl.trim();
+  // ── 1. Local static CSV (always bundled with the site — fastest, always works) ──
+  try {
+    const res = await fetch(`/data/portfolio.csv?v=${cacheBuster}`, { cache: 'no-store' });
+    if (res.ok) {
+      const text = await res.text();
+      if (text && text.trim()) {
+        console.log('Portfolio data loaded from local CSV.');
+        const localData = parseCSVData(text);
+        // Update cache with local data so components render immediately
+        _cachedData = localData;
 
-    // Automatically transform Google Sheets URLs to direct CSV export URL if needed
-    if (targetUrl.includes('docs.google.com/spreadsheets/d/')) {
-      if (!targetUrl.includes('/pub?') && !targetUrl.includes('/export?')) {
-        const sheetIdMatch = targetUrl.match(/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
-        if (sheetIdMatch && sheetIdMatch[1]) {
-          targetUrl = `https://docs.google.com/spreadsheets/d/${sheetIdMatch[1]}/export?format=csv`;
-        }
+        // ── 2. Background refresh from Google Sheets (updates cache silently) ──
+        _refreshFromSheets();
+
+        return localData;
       }
     }
+  } catch {
+    console.warn('Local CSV fetch failed, trying Google Sheets directly...');
+  }
 
-    const fullDriveUrl = targetUrl.includes('?')
-      ? `${targetUrl}&_cb=${cacheBuster}`
-      : `${targetUrl}?_cb=${cacheBuster}`;
+  // ── 3. Direct Google Sheets fetch if local CSV unavailable ──
+  const driveResult = await _fetchFromSheets();
+  if (driveResult) return driveResult;
 
-    // ── Race all URLs in parallel — fastest valid response wins ──────────────
-    const fetchOpts: RequestInit = {
-      cache: 'no-store',
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-      },
-    };
+  // ── 4. Last resort empty defaults ──
+  return getDefaultData();
+};
 
-    const tryFetch = async (url: string): Promise<PortfolioData> => {
-      const res = await fetch(url, fetchOpts);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const text = await res.text();
-      if (!text || !text.trim() || (!text.includes('field') && !text.includes('name'))) {
-        throw new Error('Invalid CSV');
+const _fetchFromSheets = async (): Promise<PortfolioData | null> => {
+  const driveUrl = (import.meta as any).env?.VITE_CSV_URL || (process as any).env?.VITE_CSV_URL;
+  if (!driveUrl || !driveUrl.trim().startsWith('http')) return null;
+
+  let targetUrl = driveUrl.trim();
+  if (targetUrl.includes('docs.google.com/spreadsheets/d/')) {
+    if (!targetUrl.includes('/pub?') && !targetUrl.includes('/export?')) {
+      const match = targetUrl.match(/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+      if (match?.[1]) {
+        targetUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`;
       }
-      console.log('Portfolio data loaded via:', url);
-      return parseCSVData(text);
-    };
-
-    const candidates = [
-      fullDriveUrl,
-      `https://corsproxy.io/?${encodeURIComponent(fullDriveUrl)}`,
-      `https://api.allorigins.win/raw?url=${encodeURIComponent(fullDriveUrl)}`,
-    ];
-
-    try {
-      // Promise.any → resolves as soon as the FIRST candidate succeeds
-      return await Promise.any(candidates.map(tryFetch));
-    } catch {
-      console.warn('All Google Sheets fetch candidates failed, using default data.');
     }
   }
 
-  // Fallback to empty default structure if remote CSV is unreachable
-  return getDefaultData();
+  const fullUrl = `${targetUrl}${targetUrl.includes('?') ? '&' : '?'}_cb=${Date.now()}`;
+  const fetchOpts: RequestInit = {
+    cache: 'no-store',
+    headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0', 'Pragma': 'no-cache' },
+  };
+
+  const tryFetch = async (url: string): Promise<PortfolioData> => {
+    const res = await fetch(url, fetchOpts);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    if (!text?.trim() || (!text.includes('field') && !text.includes('name'))) throw new Error('Invalid CSV');
+    console.log('Portfolio data loaded from Google Sheets via:', url);
+    return parseCSVData(text);
+  };
+
+  try {
+    return await Promise.any([
+      fullUrl,
+      `https://corsproxy.io/?${encodeURIComponent(fullUrl)}`,
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(fullUrl)}`,
+    ].map(tryFetch));
+  } catch {
+    console.warn('All Google Sheets candidates failed.');
+    return null;
+  }
+};
+
+// Silently refreshes the cache from Google Sheets in the background
+// after local data has already been served to components.
+const _refreshFromSheets = async () => {
+  const fresh = await _fetchFromSheets();
+  if (fresh) {
+    _cachedData = fresh;
+    console.log('Cache updated with latest Google Sheets data.');
+  }
 };
