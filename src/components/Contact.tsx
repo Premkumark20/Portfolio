@@ -377,7 +377,7 @@ const Contact: React.FC = () => {
             <div className="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 shrink-0 text-blue-400" />
-                <span>Response Time: Typically within 24 hours</span>
+                <span>Response Time: Typically within 48 hours</span>
               </div>
               <button
                 type="button"
