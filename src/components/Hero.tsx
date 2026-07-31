@@ -12,6 +12,33 @@ const Hero: React.FC = () => {
 
   const resumeUrl = getAssetUrl("resume/Prem_Kumar_Resume.pdf");
 
+  const handleResumeDownload = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    try {
+      let res = await fetch(resumeUrl);
+      if (!res.ok) {
+        // Try fallback location
+        const fallbackUrl = getAssetUrl("resume.pdf");
+        res = await fetch(fallbackUrl);
+      }
+      if (!res.ok) {
+        window.open(resumeUrl, "_blank");
+        return;
+      }
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = "Prem_Kumar_Resume.pdf";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
+    } catch {
+      window.open(resumeUrl, "_blank");
+    }
+  };
+
   useEffect(() => {
     fetchPortfolioData().then((fetched) => {
       setData(fetched);
@@ -108,6 +135,7 @@ const Hero: React.FC = () => {
             <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2.5 sm:gap-4 pt-1 w-full max-w-full">
               <a
                 href={resumeUrl}
+                onClick={handleResumeDownload}
                 download="Prem_Kumar_Resume.pdf"
                 target="_blank"
                 rel="noopener noreferrer"
