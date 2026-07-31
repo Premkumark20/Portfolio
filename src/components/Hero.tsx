@@ -4,10 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Download, Eye, Briefcase, Mail, ShieldCheck, Code, Sparkles, Terminal } from "lucide-react";
 import profileImage from "@/assets/profile.jpg";
 import { fetchPortfolioData, PortfolioData } from "@/lib/csvData";
+import { getAssetUrl } from "@/lib/utils";
 
 const Hero: React.FC = () => {
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [data, setData] = useState<PortfolioData | null>(null);
+
+  const resumeUrl = getAssetUrl("resume/Prem_Kumar_Resume.pdf");
 
   useEffect(() => {
     fetchPortfolioData().then((fetched) => {
@@ -104,7 +107,7 @@ const Hero: React.FC = () => {
             {/* Action Buttons Grid */}
             <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2.5 sm:gap-4 pt-1 w-full max-w-full">
               <a
-                href="/resume/Prem%20kumar%20Resume.pdf"
+                href={resumeUrl}
                 download="Prem_Kumar_Resume.pdf"
                 target="_blank"
                 rel="noopener noreferrer"

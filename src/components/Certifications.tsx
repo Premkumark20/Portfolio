@@ -5,6 +5,7 @@ import { Calendar, Eye, X, ExternalLink, ChevronDown, ChevronUp, FileText } from
 import { Button } from "@/components/ui/button";
 import { TiltCard } from "@/components/ui/TiltCard";
 import { fetchPortfolioData } from "@/lib/csvData";
+import { getAssetUrl } from "@/lib/utils";
 
 interface Certification {
   id: number;
@@ -134,7 +135,7 @@ const Certifications: React.FC = () => {
           platform: c.provider || 'Certification Authority',
           issueDate: c.date || '2024 - 2025',
           category: c.level || 'Professional Certification',
-          pdfPath: c.link || '/images/certificates/Internal SIH.pdf',
+          pdfPath: getAssetUrl(c.link || '/images/certificates/Internal SIH.pdf'),
         }));
         setCertsList(mapped);
       }
