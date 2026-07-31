@@ -110,10 +110,22 @@ const Projects: React.FC = () => {
                         <Icon className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
                       </div>
 
-                      <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[10px] sm:text-xs font-mono font-semibold">
-                        <Clock className="w-2.5 h-2.5 animate-spin" style={{ animationDuration: '6s' }} />
-                        <span>In Progress ({project.progress}%)</span>
-                      </div>
+                      {project.progress >= 95 ? (
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[10px] sm:text-xs font-mono font-semibold">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                          <span>Completed</span>
+                        </div>
+                      ) : project.progress >= 75 ? (
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[10px] sm:text-xs font-mono font-semibold">
+                          <Sparkles className="w-3 h-3 text-amber-400 animate-pulse" />
+                          <span>Almost Completed</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 text-[10px] sm:text-xs font-mono font-semibold">
+                          <Clock className="w-3 h-3 animate-spin" style={{ animationDuration: '6s' }} />
+                          <span>In Progress</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Title & Timeline */}
@@ -126,18 +138,41 @@ const Projects: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Development Progress Bar */}
-                    <div className="space-y-1 my-3">
-                      <div className="flex justify-between text-[11px] text-gray-400 font-mono">
-                        <span>Progress</span>
-                        <span className="text-cyan-400 font-bold">{project.progress}%</span>
+                    {/* Status & Completion Badge (Replaces Linear Bar) */}
+                    <div className="flex items-center justify-between my-3 py-2 px-3 rounded-xl bg-white/[0.04] border border-white/10">
+                      <div className="flex items-center gap-2">
+                        <span className="relative flex h-2 w-2">
+                          {project.progress >= 95 ? (
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+                          ) : project.progress >= 75 ? (
+                            <>
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400"></span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-400"></span>
+                            </>
+                          )}
+                        </span>
+                        <span className="text-xs font-semibold font-mono text-gray-200">
+                          {project.progress >= 95
+                            ? "Completed"
+                            : project.progress >= 75
+                            ? "Almost Completed"
+                            : "In Development"}
+                        </span>
                       </div>
-                      <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
-                        <div
-                          className={`h-full rounded-full bg-gradient-to-r ${project.gradient}`}
-                          style={{ width: `${project.progress}%` }}
-                        />
-                      </div>
+                      <span className={`text-[11px] font-bold font-mono px-2 py-0.5 rounded-md ${
+                        project.progress >= 95
+                          ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20"
+                          : project.progress >= 75
+                          ? "bg-amber-500/10 text-amber-300 border border-amber-500/20"
+                          : "bg-blue-500/10 text-blue-300 border border-blue-500/20"
+                      }`}>
+                        {project.progress}% Done
+                      </span>
                     </div>
 
                     {/* Description */}
@@ -231,17 +266,43 @@ const Projects: React.FC = () => {
               </button>
             </div>
 
-            {/* Modal Progress Indicator */}
-            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2">
-              <div className="flex items-center justify-between text-xs font-semibold text-gray-300">
-                <span>Status: {selectedProject.status}</span>
-                <span className="text-cyan-400 font-mono">{selectedProject.progress}%</span>
+            {/* Modal Status Indicator */}
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="relative flex h-2.5 w-2.5">
+                  {selectedProject.progress >= 95 ? (
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400"></span>
+                  ) : selectedProject.progress >= 75 ? (
+                    <>
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-400"></span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-400"></span>
+                    </>
+                  )}
+                </span>
+                <div>
+                  <div className="text-[11px] text-gray-400 font-mono uppercase tracking-wider">Project Status</div>
+                  <div className="text-sm font-bold text-white">
+                    {selectedProject.progress >= 95
+                      ? "Completed"
+                      : selectedProject.progress >= 75
+                      ? "Almost Completed"
+                      : "In Development"}
+                  </div>
+                </div>
               </div>
-              <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
-                <div
-                  className={`h-full rounded-full bg-gradient-to-r ${selectedProject.gradient}`}
-                  style={{ width: `${selectedProject.progress}%` }}
-                />
+              <div className={`px-3 py-1 rounded-xl text-xs font-mono font-bold ${
+                selectedProject.progress >= 95
+                  ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20"
+                  : selectedProject.progress >= 75
+                  ? "bg-amber-500/10 text-amber-300 border border-amber-500/20"
+                  : "bg-blue-500/10 text-blue-300 border border-blue-500/20"
+              }`}>
+                {selectedProject.progress}% Done
               </div>
             </div>
 
