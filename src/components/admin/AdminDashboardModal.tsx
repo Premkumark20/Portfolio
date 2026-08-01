@@ -618,27 +618,21 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                     />
                   </div>
                   <div>
-                    <label className="block text-gray-300 mb-1">Category / Specialization</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Under Graduate, State Board Secondary Education..."
-                      value={eduForm.specialization}
-                      onChange={(e) => setEduForm({ ...eduForm, specialization: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white"
-                      list="edu-category-suggestions"
-                    />
-                    <datalist id="edu-category-suggestions">
-                      <option value="Under Graduate" />
-                      <option value="State Board Higher Secondary Education" />
-                      <option value="State Board Secondary Education" />
-                    </datalist>
-                  </div>
-                  <div>
                     <label className="block text-gray-300 mb-1">Status Badge</label>
                     <input
                       type="text"
                       value={eduForm.statusBadge}
                       onChange={(e) => setEduForm({ ...eduForm, statusBadge: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-gray-300 mb-1">Category</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Under Graduate, State Board Higher Secondary Education, State Board Secondary Education"
+                      value={eduForm.specialization}
+                      onChange={(e) => setEduForm({ ...eduForm, specialization: e.target.value })}
                       className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white"
                     />
                   </div>
@@ -654,6 +648,17 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                       } else {
                         addEducation(eduForm);
                       }
+                      setEduForm({
+                        type: 'Degree',
+                        institution: '',
+                        location: '',
+                        degree: '',
+                        specialization: '',
+                        period: '',
+                        score: '',
+                        statusBadge: 'Completed',
+                        isPrimary: false,
+                      });
                     }}
                     className="px-4 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold flex items-center gap-1"
                   >
@@ -671,7 +676,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                       <div className="font-bold text-white text-sm">{edu.degree}</div>
                       <div className="text-gray-400">{edu.institution} • {edu.period}</div>
                       {edu.specialization && (
-                        <div className="text-purple-400 text-xs font-semibold mt-0.5">{edu.specialization}</div>
+                        <div className="text-xs text-blue-400 font-medium mt-1">Category: {edu.specialization}</div>
                       )}
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
