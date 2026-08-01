@@ -618,6 +618,22 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                     />
                   </div>
                   <div>
+                    <label className="block text-gray-300 mb-1">Category / Specialization</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Under Graduate, State Board Secondary Education..."
+                      value={eduForm.specialization}
+                      onChange={(e) => setEduForm({ ...eduForm, specialization: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white"
+                      list="edu-category-suggestions"
+                    />
+                    <datalist id="edu-category-suggestions">
+                      <option value="Under Graduate" />
+                      <option value="State Board Higher Secondary Education" />
+                      <option value="State Board Secondary Education" />
+                    </datalist>
+                  </div>
+                  <div>
                     <label className="block text-gray-300 mb-1">Status Badge</label>
                     <input
                       type="text"
@@ -654,6 +670,9 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                     <div>
                       <div className="font-bold text-white text-sm">{edu.degree}</div>
                       <div className="text-gray-400">{edu.institution} • {edu.period}</div>
+                      {edu.specialization && (
+                        <div className="text-purple-400 text-xs font-semibold mt-0.5">{edu.specialization}</div>
+                      )}
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button
