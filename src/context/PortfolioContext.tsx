@@ -234,19 +234,59 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   // Resume CRUD
-  const addResume = (resume: ResumeItem) => {
+  const addResume = async (resume: ResumeItem) => {
     if (!data) return;
+    let finalResume = { ...resume };
+
+    if (resume.fileData && resume.fileData.startsWith('data:')) {
+      try {
+        const res = await fetch('/api/resume/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileName: resume.name.endsWith('.pdf') ? resume.name : `${resume.name}.pdf`,
+            fileData: resume.fileData,
+          }),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.path) {
+            finalResume.fileData = json.path;
+          }
+        }
+      } catch (err) {
+        console.warn('Backend resume upload warning:', err);
+      }
+    }
+
     const existing = data.resumes || [];
     const isFirst = existing.length === 0;
-    const isPrimary = resume.isPrimary || isFirst;
+    const isPrimary = finalResume.isPrimary || isFirst;
     const updatedResumes = existing.map(r => isPrimary ? { ...r, isPrimary: false } : r);
-    updatedResumes.unshift({ ...resume, isPrimary });
+    updatedResumes.unshift({ ...finalResume, isPrimary });
     saveAndSync({ ...data, resumes: updatedResumes });
     toast.success('Resume uploaded successfully!');
   };
 
-  const deleteResume = (id: string) => {
+  const deleteResume = async (id: string) => {
     if (!data) return;
+    const target = (data.resumes || []).find(r => r.id === id);
+    if (target && target.fileData) {
+      const fileName = target.fileData.startsWith('/resume/') 
+        ? target.fileData.replace('/resume/', '') 
+        : (target.name.endsWith('.pdf') ? target.name : `${target.name}.pdf`);
+
+      try {
+        await fetch('/api/resume/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileName }),
+        });
+      } catch (err) {
+        console.warn('Backend resume delete warning:', err);
+      }
+    }
+
     const list = (data.resumes || []).filter(r => r.id !== id);
     if (list.length > 0 && !list.some(r => r.isPrimary)) {
       list[0].isPrimary = true;

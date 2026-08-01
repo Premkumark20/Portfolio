@@ -18,16 +18,47 @@ const Hero: React.FC = () => {
   const handleResumeDownload = async (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
     if (primaryResume && primaryResume.fileData) {
+      const fileUrl = getAssetUrl(primaryResume.fileData);
+      const downloadName = primaryResume.name?.endsWith('.pdf') ? primaryResume.name : `${primaryResume.name || 'Prem_Kumar_Resume'}.pdf`;
+      
+      if (primaryResume.fileData.startsWith('data:')) {
+        try {
+          const link = document.createElement("a");
+          link.href = primaryResume.fileData;
+          link.download = downloadName;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          return;
+        } catch {
+          window.open(primaryResume.fileData, "_blank");
+          return;
+        }
+      }
+
       try {
-        const link = document.createElement("a");
-        link.href = primaryResume.fileData;
-        link.download = primaryResume.name || "Prem_Kumar_Resume.pdf";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        return;
+        let res = await fetch(fileUrl);
+        if (!res.ok) {
+          const fallbackUrl = getAssetUrl("resume.pdf");
+          res = await fetch(fallbackUrl);
+        }
+        if (res.ok) {
+          const blob = await res.blob();
+          const blobUrl = window.URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = blobUrl;
+          link.download = downloadName;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
+          return;
+        } else {
+          window.open(fileUrl, "_blank");
+          return;
+        }
       } catch {
-        window.open(primaryResume.fileData, "_blank");
+        window.open(fileUrl, "_blank");
         return;
       }
     }

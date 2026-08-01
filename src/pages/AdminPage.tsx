@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { usePortfolio } from '@/context/PortfolioContext';
 import { ExperienceItem, PortfolioData, ResumeItem } from '@/lib/csvData';
+import { getAssetUrl } from '@/lib/utils';
 
 export const AdminPage: React.FC = () => {
   useEffect(() => {
@@ -78,15 +79,84 @@ export const AdminPage: React.FC = () => {
   const [resumeFileName, setResumeFileName] = useState('');
   const [isResumePrimary, setIsResumePrimary] = useState(false);
 
+  // Personal Info Form State
+  const [personalForm, setPersonalForm] = useState({
+    name: '',
+    title: '',
+    specialization: '',
+    statusBadge: '',
+    email: '',
+    phone: '',
+    github_link: '',
+    linkedin_link: '',
+    heroTagsInput: '',
+    bioSummary: '',
+  });
+  const [personalSaved, setPersonalSaved] = useState(false);
+
+  useEffect(() => {
+    if (data) {
+      setPersonalForm({
+        name: data.name || '',
+        title: data.title || '',
+        specialization: data.specialization || '',
+        statusBadge: data.statusBadge || '',
+        email: data.email || '',
+        phone: data.phone || '',
+        github_link: data.github_link || '',
+        linkedin_link: data.linkedin_link || '',
+        heroTagsInput: data.heroTags ? data.heroTags.join(', ') : '',
+        bioSummary: data.bioSummary || '',
+      });
+    }
+  }, [data?.name, data?.title, data?.specialization, data?.statusBadge, data?.email, data?.phone, data?.github_link, data?.linkedin_link, data?.heroTags, data?.bioSummary]);
+
+  const handleSavePersonalInfo = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const heroTags = personalForm.heroTagsInput
+      ? personalForm.heroTagsInput.split(',').map(t => t.trim()).filter(Boolean)
+      : [];
+    updatePersonalInfo({
+      name: personalForm.name,
+      title: personalForm.title,
+      specialization: personalForm.specialization,
+      statusBadge: personalForm.statusBadge,
+      email: personalForm.email,
+      phone: personalForm.phone,
+      github_link: personalForm.github_link,
+      linkedin_link: personalForm.linkedin_link,
+      heroTags,
+      bioSummary: personalForm.bioSummary,
+    });
+    setPersonalSaved(true);
+    setTimeout(() => setPersonalSaved(false), 3000);
+  };
+
+  // Stats Form State
+  const [statsForm, setStatsForm] = useState<PortfolioData['statsList']>([]);
+  const [statsSaved, setStatsSaved] = useState(false);
+
+  useEffect(() => {
+    if (data?.statsList) {
+      setStatsForm(data.statsList);
+    }
+  }, [data?.statsList]);
+
+  const handleSaveStats = () => {
+    updateStats(statsForm);
+    setStatsSaved(true);
+    setTimeout(() => setStatsSaved(false), 3000);
+  };
+
   // Editing Indexes & Form States
   const [editingExpIdx, setEditingExpIdx] = useState<number | null>(null);
-  const [expForm, setExpForm] = useState<ExperienceItem>({
-    role: '', company: '', location: '', duration: '', summary: '', tags: [], gradient: 'from-blue-600 to-indigo-600'
+  const [expForm, setExpForm] = useState<ExperienceItem & { tagsInput?: string }>({
+    role: '', company: '', location: '', duration: '', summary: '', tags: [], tagsInput: '', gradient: 'from-blue-600 to-indigo-600'
   });
 
   const [editingProjIdx, setEditingProjIdx] = useState<number | null>(null);
-  const [projForm, setProjForm] = useState<PortfolioData['projects'][0]>({
-    title: '', description: '', tech: [], type: 'Self Project', duration: '2025', category: 'Web Development', github: '', live: '', progress: 80
+  const [projForm, setProjForm] = useState<PortfolioData['projects'][0] & { techInput?: string }>({
+    title: '', description: '', tech: [], techInput: '', type: 'Self Project', duration: '2025', category: 'Web Development', github: '', live: '', progress: 80
   });
 
   const [editingEduIdx, setEditingEduIdx] = useState<number | null>(null);
@@ -95,13 +165,13 @@ export const AdminPage: React.FC = () => {
   });
 
   const [editingSrvIdx, setEditingSrvIdx] = useState<number | null>(null);
-  const [srvForm, setSrvForm] = useState<PortfolioData['servicesList'][0]>({
-    title: '', desc: '', tech: []
+  const [srvForm, setSrvForm] = useState<PortfolioData['servicesList'][0] & { techInput?: string }>({
+    title: '', desc: '', tech: [], techInput: ''
   });
 
   const [editingSkillIdx, setEditingSkillIdx] = useState<number | null>(null);
-  const [skillForm, setSkillForm] = useState<PortfolioData['skillsList'][0]>({
-    category: '', skills: []
+  const [skillForm, setSkillForm] = useState<PortfolioData['skillsList'][0] & { skillsInput?: string }>({
+    category: '', skills: [], skillsInput: ''
   });
 
   const [editingCertIdx, setEditingCertIdx] = useState<number | null>(null);
@@ -219,9 +289,6 @@ export const AdminPage: React.FC = () => {
               <Lock className="w-4 h-4" />
               <span>Login to Admin Panel</span>
             </button>
-            <div className="text-center pt-2 text-[11px] text-gray-500">
-              Use <code className="text-blue-400 font-mono">.env</code> credentials or Recovery (<code className="text-blue-400 font-mono">admin</code> / <code className="text-blue-400 font-mono">admin2615</code>)
-            </div>
           </form>
         </div>
       </div>
@@ -241,8 +308,8 @@ export const AdminPage: React.FC = () => {
             </div>
           </div>
           <div>
-            <h1 className="text-lg font-extrabold text-white">Admin Management Panel</h1>
-            <p className="text-xs text-gray-400">Drag & drop cards to reorder portfolio layout</p>
+            <h1 className="text-lg font-extrabold text-white">Admin Panel</h1>
+            <p className="text-xs text-gray-400">Manage & Update Portfolio</p>
           </div>
         </div>
 
@@ -327,19 +394,21 @@ export const AdminPage: React.FC = () => {
 
         {/* 1. PERSONAL & BIO TAB */}
         {activeTab === 'personal' && (
-          <div className="space-y-6">
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <User className="w-5 h-5 text-blue-400" />
-              <span>Personal Information & Profile</span>
-            </h2>
+          <form onSubmit={handleSavePersonalInfo} className="space-y-6">
+            <div>
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <User className="w-5 h-5 text-blue-400" />
+                <span>Personal Information & Profile</span>
+              </h2>
+            </div>
 
             <div className="p-6 rounded-2xl bg-white/5 border border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div>
                 <label className="block text-gray-300 mb-1 font-semibold">Full Name</label>
                 <input
                   type="text"
-                  value={data.name}
-                  onChange={(e) => updatePersonalInfo({ name: e.target.value })}
+                  value={personalForm.name}
+                  onChange={(e) => setPersonalForm(prev => ({ ...prev, name: e.target.value }))}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white"
                 />
               </div>
@@ -348,8 +417,8 @@ export const AdminPage: React.FC = () => {
                 <label className="block text-gray-300 mb-1 font-semibold">Title / Headline</label>
                 <input
                   type="text"
-                  value={data.title}
-                  onChange={(e) => updatePersonalInfo({ title: e.target.value })}
+                  value={personalForm.title}
+                  onChange={(e) => setPersonalForm(prev => ({ ...prev, title: e.target.value }))}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white"
                 />
               </div>
@@ -358,8 +427,8 @@ export const AdminPage: React.FC = () => {
                 <label className="block text-gray-300 mb-1 font-semibold">Specialization</label>
                 <input
                   type="text"
-                  value={data.specialization}
-                  onChange={(e) => updatePersonalInfo({ specialization: e.target.value })}
+                  value={personalForm.specialization}
+                  onChange={(e) => setPersonalForm(prev => ({ ...prev, specialization: e.target.value }))}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white"
                 />
               </div>
@@ -368,8 +437,8 @@ export const AdminPage: React.FC = () => {
                 <label className="block text-gray-300 mb-1 font-semibold">Status Badge</label>
                 <input
                   type="text"
-                  value={data.statusBadge}
-                  onChange={(e) => updatePersonalInfo({ statusBadge: e.target.value })}
+                  value={personalForm.statusBadge}
+                  onChange={(e) => setPersonalForm(prev => ({ ...prev, statusBadge: e.target.value }))}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white"
                 />
               </div>
@@ -378,8 +447,8 @@ export const AdminPage: React.FC = () => {
                 <label className="block text-gray-300 mb-1 font-semibold">Email</label>
                 <input
                   type="email"
-                  value={data.email}
-                  onChange={(e) => updatePersonalInfo({ email: e.target.value })}
+                  value={personalForm.email}
+                  onChange={(e) => setPersonalForm(prev => ({ ...prev, email: e.target.value }))}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white"
                 />
               </div>
@@ -388,8 +457,8 @@ export const AdminPage: React.FC = () => {
                 <label className="block text-gray-300 mb-1 font-semibold">Phone</label>
                 <input
                   type="text"
-                  value={data.phone}
-                  onChange={(e) => updatePersonalInfo({ phone: e.target.value })}
+                  value={personalForm.phone}
+                  onChange={(e) => setPersonalForm(prev => ({ ...prev, phone: e.target.value }))}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white"
                 />
               </div>
@@ -398,8 +467,8 @@ export const AdminPage: React.FC = () => {
                 <label className="block text-gray-300 mb-1 font-semibold">GitHub Link</label>
                 <input
                   type="text"
-                  value={data.github_link}
-                  onChange={(e) => updatePersonalInfo({ github_link: e.target.value })}
+                  value={personalForm.github_link}
+                  onChange={(e) => setPersonalForm(prev => ({ ...prev, github_link: e.target.value }))}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white"
                 />
               </div>
@@ -408,8 +477,8 @@ export const AdminPage: React.FC = () => {
                 <label className="block text-gray-300 mb-1 font-semibold">LinkedIn Link</label>
                 <input
                   type="text"
-                  value={data.linkedin_link}
-                  onChange={(e) => updatePersonalInfo({ linkedin_link: e.target.value })}
+                  value={personalForm.linkedin_link}
+                  onChange={(e) => setPersonalForm(prev => ({ ...prev, linkedin_link: e.target.value }))}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white"
                 />
               </div>
@@ -418,8 +487,8 @@ export const AdminPage: React.FC = () => {
                 <label className="block text-gray-300 mb-1 font-semibold">Hero Tags (Comma-separated)</label>
                 <input
                   type="text"
-                  value={data.heroTags ? data.heroTags.join(', ') : ''}
-                  onChange={(e) => updatePersonalInfo({ heroTags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) })}
+                  value={personalForm.heroTagsInput}
+                  onChange={(e) => setPersonalForm(prev => ({ ...prev, heroTagsInput: e.target.value }))}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white"
                 />
               </div>
@@ -428,13 +497,31 @@ export const AdminPage: React.FC = () => {
                 <label className="block text-gray-300 mb-1 font-semibold">Bio Summary</label>
                 <textarea
                   rows={4}
-                  value={data.bioSummary}
-                  onChange={(e) => updatePersonalInfo({ bioSummary: e.target.value })}
+                  value={personalForm.bioSummary}
+                  onChange={(e) => setPersonalForm(prev => ({ ...prev, bioSummary: e.target.value }))}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white"
                 />
               </div>
             </div>
-          </div>
+
+            <div className="flex items-center justify-between pt-2">
+              {personalSaved ? (
+                <div className="px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-400" />
+                  <span>Personal information updated successfully!</span>
+                </div>
+              ) : (
+                <span />
+              )}
+              <button
+                type="submit"
+                className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-blue-500/20 cursor-pointer transition-all"
+              >
+                <Check className="w-4 h-4" />
+                <span>Confirm & Save Changes</span>
+              </button>
+            </div>
+          </form>
         )}
 
         {/* 2. RESUMES TAB */}
@@ -578,31 +665,50 @@ export const AdminPage: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2 self-end sm:self-auto">
-                      {!res.isPrimary && (
+                      {/* View Resume Icon Button */}
+                      <a
+                        href={getAssetUrl(res.fileData)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 transition-all flex items-center justify-center"
+                        title="View / Preview Resume"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </a>
+
+                      {/* Set Primary Resume Icon Button */}
+                      {res.isPrimary ? (
+                        <button
+                          disabled
+                          className="p-2.5 rounded-xl bg-blue-600 border border-blue-400 text-white cursor-default shadow-md shadow-blue-600/30 opacity-90 flex items-center justify-center"
+                          title="Primary Resume Active"
+                        >
+                          <Star className="w-4 h-4 fill-white text-white" />
+                        </button>
+                      ) : (
                         <button
                           onClick={() => setPrimaryResume(res.id)}
-                          className="px-3 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/40 text-blue-300 font-semibold flex items-center gap-1"
-                          title="Set as active download resume"
+                          className="p-2.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/40 text-blue-300 transition-all flex items-center justify-center"
+                          title="Set as Primary Resume"
                         >
-                          <Star className="w-3.5 h-3.5" />
-                          <span>Set Primary</span>
+                          <Star className="w-4 h-4" />
                         </button>
                       )}
 
+                      {/* Download Resume Icon Button */}
                       <a
-                        href={res.fileData}
-                        download={`${res.name}.pdf`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white"
-                        title="Download / View Resume File"
+                        href={getAssetUrl(res.fileData)}
+                        download={res.name.endsWith('.pdf') ? res.name : `${res.name}.pdf`}
+                        className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-white transition-all flex items-center justify-center"
+                        title="Download Resume File"
                       >
                         <Download className="w-4 h-4" />
                       </a>
 
+                      {/* Delete Resume Icon Button */}
                       <button
                         onClick={() => deleteResume(res.id)}
-                        className="p-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300"
+                        className="p-2.5 rounded-xl bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-300 transition-all flex items-center justify-center"
                         title="Delete Resume"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -631,7 +737,7 @@ export const AdminPage: React.FC = () => {
                 <button
                   onClick={() => {
                     setEditingProjIdx(null);
-                    setProjForm({ title: '', description: '', tech: [], type: 'Self Project', duration: '2025', category: 'Web Development', github: '', live: '', progress: 80 });
+                    setProjForm({ title: '', description: '', tech: [], techInput: '', type: 'Self Project', duration: '2025', category: 'Web Development', github: '', live: '', progress: 80 });
                     setShowForm(true);
                     scrollToForm();
                   }}
@@ -710,8 +816,8 @@ export const AdminPage: React.FC = () => {
                     <label className="block text-gray-300 mb-1">Tech Stack (Comma-separated)</label>
                     <input
                       type="text"
-                      value={projForm.tech.join(', ')}
-                      onChange={(e) => setProjForm({ ...projForm, tech: e.target.value.split(',').map(t => t.trim()).filter(Boolean) })}
+                      value={projForm.techInput ?? projForm.tech.join(', ')}
+                      onChange={(e) => setProjForm({ ...projForm, techInput: e.target.value })}
                       className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white"
                     />
                   </div>
@@ -742,11 +848,14 @@ export const AdminPage: React.FC = () => {
                   <button
                     onClick={() => {
                       if (!projForm.title) return;
+                      const techList = (projForm.techInput ?? projForm.tech.join(', ')).split(',').map(t => t.trim()).filter(Boolean);
+                      const { techInput, ...projToSave } = projForm;
+                      const finalProj = { ...projToSave, tech: techList };
                       if (editingProjIdx !== null) {
-                        updateProject(editingProjIdx, projForm);
+                        updateProject(editingProjIdx, finalProj);
                         setEditingProjIdx(null);
                       } else {
-                        addProject(projForm);
+                        addProject(finalProj);
                       }
                       setShowForm(false);
                     }}
@@ -797,7 +906,7 @@ export const AdminPage: React.FC = () => {
                     <button
                       onClick={() => {
                         setEditingProjIdx(idx);
-                        setProjForm(proj);
+                        setProjForm({ ...proj, techInput: proj.tech ? proj.tech.join(', ') : '' });
                         setShowForm(true);
                         scrollToForm();
                       }}
@@ -967,7 +1076,7 @@ export const AdminPage: React.FC = () => {
                 <button
                   onClick={() => {
                     setEditingExpIdx(null);
-                    setExpForm({ role: '', company: '', location: '', duration: '', summary: '', tags: [], gradient: 'from-blue-600 to-indigo-600' });
+                    setExpForm({ role: '', company: '', location: '', duration: '', summary: '', tags: [], tagsInput: '', gradient: 'from-blue-600 to-indigo-600' });
                     setShowForm(true);
                     scrollToForm();
                   }}
@@ -1049,8 +1158,8 @@ export const AdminPage: React.FC = () => {
                     <input
                       type="text"
                       placeholder="React, TypeScript, TailwindCSS"
-                      value={expForm.tags.join(', ')}
-                      onChange={(e) => setExpForm({ ...expForm, tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) })}
+                      value={expForm.tagsInput ?? expForm.tags.join(', ')}
+                      onChange={(e) => setExpForm({ ...expForm, tagsInput: e.target.value })}
                       className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white"
                     />
                   </div>
@@ -1063,11 +1172,14 @@ export const AdminPage: React.FC = () => {
                   <button
                     onClick={() => {
                       if (!expForm.role || !expForm.company) return;
+                      const tagsList = (expForm.tagsInput ?? expForm.tags.join(', ')).split(',').map(t => t.trim()).filter(Boolean);
+                      const { tagsInput, ...expToSave } = expForm;
+                      const finalExp = { ...expToSave, tags: tagsList };
                       if (editingExpIdx !== null) {
-                        updateExperience(editingExpIdx, expForm);
+                        updateExperience(editingExpIdx, finalExp);
                         setEditingExpIdx(null);
                       } else {
-                        addExperience(expForm);
+                        addExperience(finalExp);
                       }
                       setShowForm(false);
                     }}
@@ -1126,7 +1238,7 @@ export const AdminPage: React.FC = () => {
                       <button
                         onClick={() => {
                           setEditingExpIdx(idx);
-                          setExpForm(exp);
+                          setExpForm({ ...exp, tagsInput: exp.tags ? exp.tags.join(', ') : '' });
                           setShowForm(true);
                           scrollToForm();
                         }}
@@ -1160,7 +1272,7 @@ export const AdminPage: React.FC = () => {
               </h2>
 
               {!showForm ? (
-                <button onClick={() => { setEditingSrvIdx(null); setSrvForm({ title: '', desc: '', tech: [] }); setShowForm(true); scrollToForm(); }} className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5">
+                <button onClick={() => { setEditingSrvIdx(null); setSrvForm({ title: '', desc: '', tech: [], techInput: '' }); setShowForm(true); scrollToForm(); }} className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5">
                   <Plus className="w-4 h-4" />
                   <span>Add Service</span>
                 </button>
@@ -1184,14 +1296,17 @@ export const AdminPage: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-gray-300 mb-1 font-mono">Technologies (Comma-separated)</label>
-                  <input type="text" value={srvForm.tech.join(', ')} onChange={(e) => setSrvForm({ ...srvForm, tech: e.target.value.split(',').map(t => t.trim()).filter(Boolean) })} className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white" />
+                  <input type="text" value={srvForm.techInput ?? srvForm.tech.join(', ')} onChange={(e) => setSrvForm({ ...srvForm, techInput: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white" />
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
                   <button onClick={() => setShowForm(false)} className="px-4 py-2 rounded-xl bg-gray-700 text-white text-xs font-semibold">Cancel</button>
                   <button onClick={() => {
                     if (!srvForm.title) return;
-                    if (editingSrvIdx !== null) { updateService(editingSrvIdx, srvForm); setEditingSrvIdx(null); }
-                    else { addService(srvForm); }
+                    const techList = (srvForm.techInput ?? srvForm.tech.join(', ')).split(',').map(t => t.trim()).filter(Boolean);
+                    const { techInput, ...srvToSave } = srvForm;
+                    const finalSrv = { ...srvToSave, tech: techList };
+                    if (editingSrvIdx !== null) { updateService(editingSrvIdx, finalSrv); setEditingSrvIdx(null); }
+                    else { addService(finalSrv); }
                     setShowForm(false);
                   }} className="px-5 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold flex items-center gap-1">
                     <Check className="w-4 h-4" />
@@ -1228,7 +1343,7 @@ export const AdminPage: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => { setEditingSrvIdx(idx); setSrvForm(srv); setShowForm(true); scrollToForm(); }} className="p-2 rounded-xl bg-blue-500/20 text-blue-300"><Edit2 className="w-4 h-4" /></button>
+                    <button onClick={() => { setEditingSrvIdx(idx); setSrvForm({ ...srv, techInput: srv.tech ? srv.tech.join(', ') : '' }); setShowForm(true); scrollToForm(); }} className="p-2 rounded-xl bg-blue-500/20 text-blue-300"><Edit2 className="w-4 h-4" /></button>
                     <button onClick={() => deleteService(idx)} className="p-2 rounded-xl bg-red-500/20 text-red-300"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 </div>
@@ -1247,7 +1362,7 @@ export const AdminPage: React.FC = () => {
               </h2>
 
               {!showForm ? (
-                <button onClick={() => { setEditingSkillIdx(null); setSkillForm({ category: '', skills: [] }); setShowForm(true); scrollToForm(); }} className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5">
+                <button onClick={() => { setEditingSkillIdx(null); setSkillForm({ category: '', skills: [], skillsInput: '' }); setShowForm(true); scrollToForm(); }} className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5">
                   <Plus className="w-4 h-4" />
                   <span>Add Skill Category</span>
                 </button>
@@ -1267,14 +1382,17 @@ export const AdminPage: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-gray-300 mb-1">Skills (Comma-separated)</label>
-                  <input type="text" value={skillForm.skills.join(', ')} onChange={(e) => setSkillForm({ ...skillForm, skills: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })} className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white" />
+                  <input type="text" value={skillForm.skillsInput ?? skillForm.skills.join(', ')} onChange={(e) => setSkillForm({ ...skillForm, skillsInput: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white" />
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
                   <button onClick={() => setShowForm(false)} className="px-4 py-2 rounded-xl bg-gray-700 text-white text-xs font-semibold">Cancel</button>
                   <button onClick={() => {
                     if (!skillForm.category) return;
-                    if (editingSkillIdx !== null) { updateSkillCategory(editingSkillIdx, skillForm); setEditingSkillIdx(null); }
-                    else { addSkillCategory(skillForm); }
+                    const skillsList = (skillForm.skillsInput ?? skillForm.skills.join(', ')).split(',').map(s => s.trim()).filter(Boolean);
+                    const { skillsInput, ...skillToSave } = skillForm;
+                    const finalSkill = { ...skillToSave, skills: skillsList };
+                    if (editingSkillIdx !== null) { updateSkillCategory(editingSkillIdx, finalSkill); setEditingSkillIdx(null); }
+                    else { addSkillCategory(finalSkill); }
                     setShowForm(false);
                   }} className="px-5 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold flex items-center gap-1">
                     <Check className="w-4 h-4" />
@@ -1311,7 +1429,7 @@ export const AdminPage: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => { setEditingSkillIdx(idx); setSkillForm(sk); setShowForm(true); scrollToForm(); }} className="p-2 rounded-xl bg-blue-500/20 text-blue-300"><Edit2 className="w-4 h-4" /></button>
+                    <button onClick={() => { setEditingSkillIdx(idx); setSkillForm({ ...sk, skillsInput: sk.skills ? sk.skills.join(', ') : '' }); setShowForm(true); scrollToForm(); }} className="p-2 rounded-xl bg-blue-500/20 text-blue-300"><Edit2 className="w-4 h-4" /></button>
                     <button onClick={() => deleteSkillCategory(idx)} className="p-2 rounded-xl bg-red-500/20 text-red-300"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 </div>
@@ -1433,13 +1551,15 @@ export const AdminPage: React.FC = () => {
         {/* 9. STATS TAB */}
         {activeTab === 'stats' && (
           <div className="space-y-6">
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-blue-400" />
-              <span>Statistics & Highlights</span>
-            </h2>
+            <div>
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-blue-400" />
+                <span>Statistics & Highlights</span>
+              </h2>
+            </div>
 
             <div className="space-y-3">
-              {(data.statsList || []).map((stat, idx) => (
+              {(statsForm || []).map((stat, idx) => (
                 <div
                   key={idx}
                   draggable
@@ -1447,7 +1567,10 @@ export const AdminPage: React.FC = () => {
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={() => {
                     if (draggedIdx !== null && draggedIdx !== idx) {
-                      reorderStats(draggedIdx, idx);
+                      const reordered = [...statsForm];
+                      const [moved] = reordered.splice(draggedIdx, 1);
+                      reordered.splice(idx, 0, moved);
+                      setStatsForm(reordered);
                     }
                     setDraggedIdx(null);
                   }}
@@ -1466,9 +1589,9 @@ export const AdminPage: React.FC = () => {
                         type="text"
                         value={stat.label}
                         onChange={(e) => {
-                          const updated = [...data.statsList];
+                          const updated = [...statsForm];
                           updated[idx] = { ...updated[idx], label: e.target.value };
-                          updateStats(updated);
+                          setStatsForm(updated);
                         }}
                         className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white"
                       />
@@ -1479,9 +1602,9 @@ export const AdminPage: React.FC = () => {
                         type="text"
                         value={stat.value}
                         onChange={(e) => {
-                          const updated = [...data.statsList];
+                          const updated = [...statsForm];
                           updated[idx] = { ...updated[idx], value: e.target.value };
-                          updateStats(updated);
+                          setStatsForm(updated);
                         }}
                         className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white"
                       />
@@ -1492,9 +1615,9 @@ export const AdminPage: React.FC = () => {
                         type="text"
                         value={stat.subtext}
                         onChange={(e) => {
-                          const updated = [...data.statsList];
+                          const updated = [...statsForm];
                           updated[idx] = { ...updated[idx], subtext: e.target.value };
-                          updateStats(updated);
+                          setStatsForm(updated);
                         }}
                         className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white"
                       />
@@ -1502,6 +1625,24 @@ export const AdminPage: React.FC = () => {
                   </div>
                 </div>
               ))}
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              {statsSaved ? (
+                <div className="px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-400" />
+                  <span>Statistics & Highlights updated successfully!</span>
+                </div>
+              ) : (
+                <span />
+              )}
+              <button
+                onClick={handleSaveStats}
+                className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-blue-500/20 cursor-pointer transition-all"
+              >
+                <Check className="w-4 h-4" />
+                <span>Confirm & Save Changes</span>
+              </button>
             </div>
           </div>
         )}

@@ -132,6 +132,16 @@ export const parseCSVData = (csvText: string): PortfolioData => {
       }
     }
 
+    if (resumes.length === 0) {
+      resumes.push({
+        id: 'resume-1',
+        name: 'Prem_Kumar_Resume.pdf',
+        uploadDate: 'May 2025',
+        fileData: '/resume/Prem_Kumar_Resume.pdf',
+        isPrimary: true,
+      });
+    }
+
     // Parse experiences
     for (let i = 1; i <= 15; i++) {
       const role = data[`exp${i}_role`];
@@ -441,6 +451,15 @@ const getDefaultData = (): PortfolioData => ({
   statusBadge: '',
   heroTags: [],
   bioSummary: '',
+  resumes: [
+    {
+      id: 'resume-1',
+      name: 'Prem_Kumar_Resume.pdf',
+      uploadDate: 'May 2025',
+      fileData: '/resume/Prem_Kumar_Resume.pdf',
+      isPrimary: true,
+    }
+  ],
   experiences: [],
   projects: [],
   certifications: [],
