@@ -5,6 +5,7 @@ import { Calendar, Eye, X, ExternalLink, ChevronDown, ChevronUp, FileText } from
 import { Button } from "@/components/ui/button";
 import { TiltCard } from "@/components/ui/TiltCard";
 import { fetchPortfolioData } from "@/lib/csvData";
+import { usePortfolio } from "@/context/PortfolioContext";
 import { getAssetUrl } from "@/lib/utils";
 
 interface Certification {
@@ -122,25 +123,23 @@ const PdfCanvasViewer: React.FC<{ url: string }> = ({ url }) => {
 
 
 const Certifications: React.FC = () => {
+  const { data } = usePortfolio();
   const [showAll, setShowAll] = useState(false);
   const [activePdfCert, setActivePdfCert] = useState<Certification | null>(null);
-  const [certsList, setCertsList] = useState<Certification[]>([]);
 
-  useEffect(() => {
-    fetchPortfolioData().then((data) => {
-      if (data.certifications && data.certifications.length > 0) {
-        const mapped = data.certifications.map((c, idx) => ({
-          id: idx + 1,
-          title: c.title,
-          platform: c.provider || 'Certification Authority',
-          issueDate: c.date || '2024 - 2025',
-          category: c.level || 'Professional Certification',
-          pdfPath: getAssetUrl(c.link || '/images/certificates/Internal SIH.pdf'),
-        }));
-        setCertsList(mapped);
-      }
-    });
-  }, []);
+  const certsList = React.useMemo(() => {
+    if (data?.certifications && data.certifications.length > 0) {
+      return data.certifications.map((c, idx) => ({
+        id: idx + 1,
+        title: c.title,
+        platform: c.provider || 'Certification Authority',
+        issueDate: c.date || '2024 - 2025',
+        category: c.level || 'Professional Certification',
+        pdfPath: getAssetUrl(c.link || '/images/certificates/Internal SIH.pdf'),
+      }));
+    }
+    return [];
+  }, [data]);
 
   // Open PDF preview inside the lightbox modal on both desktop and mobile
   const handleViewCert = (cert: Certification) => {

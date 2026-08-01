@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Github, ArrowUpRight, Sparkles, CheckCircle2, Clock, ShieldCheck, Cpu, Home, X, Code2, ChevronDown, ChevronUp } from "lucide-react";
 import { TiltCard } from "@/components/ui/TiltCard";
 import { fetchPortfolioData } from "@/lib/csvData";
+import { usePortfolio } from "@/context/PortfolioContext";
 
 interface Project {
   id: number;
@@ -33,34 +34,32 @@ const defaultGradients = [
 const defaultIcons = [ShieldCheck, Cpu, Home, Code2, Sparkles];
 
 const Projects: React.FC = () => {
+  const { data } = usePortfolio();
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [projectsList, setProjectsList] = useState<Project[]>([]);
   const [showAll, setShowAll] = useState(false);
 
-  useEffect(() => {
-    fetchPortfolioData().then((data) => {
-      if (data.projects && data.projects.length > 0) {
-        const mapped = data.projects.map((p, idx) => ({
-          id: idx + 1,
-          title: p.title,
-          category: `${p.type || 'Project'} • ${p.duration || ''}`,
-          timeline: p.duration || '2024 - 2025',
-          progress: typeof p.progress === 'number' ? p.progress : Math.max(50, 90 - idx * 8),
-          status: p.type ? `${p.type}` : 'Completed',
-          description: p.description,
-          tech: p.tech,
-          githubUrl: p.github || 'https://github.com/Premkumark20',
-          gradient: defaultGradients[idx % defaultGradients.length],
-          icon: defaultIcons[idx % defaultIcons.length],
-          highlights: [
-            p.category || 'Software Engineering',
-            `Built with ${p.tech.slice(0, 4).join(', ')}`,
-          ],
-        }));
-        setProjectsList(mapped);
-      }
-    });
-  }, []);
+  const projectsList = React.useMemo(() => {
+    if (data?.projects && data.projects.length > 0) {
+      return data.projects.map((p, idx) => ({
+        id: idx + 1,
+        title: p.title,
+        category: `${p.type || 'Project'} • ${p.duration || ''}`,
+        timeline: p.duration || '2024 - 2025',
+        progress: typeof p.progress === 'number' ? p.progress : Math.max(50, 90 - idx * 8),
+        status: p.type ? `${p.type}` : 'Completed',
+        description: p.description,
+        tech: p.tech,
+        githubUrl: p.github || 'https://github.com/Premkumark20',
+        gradient: defaultGradients[idx % defaultGradients.length],
+        icon: defaultIcons[idx % defaultIcons.length],
+        highlights: [
+          p.category || 'Software Engineering',
+          `Built with ${p.tech.slice(0, 4).join(', ')}`,
+        ],
+      }));
+    }
+    return [];
+  }, [data]);
 
   const displayedProjects = showAll ? projectsList : projectsList.slice(0, 3);
 

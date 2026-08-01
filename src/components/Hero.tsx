@@ -4,16 +4,34 @@ import { Button } from "@/components/ui/button";
 import { Download, Eye, Briefcase, Mail, ShieldCheck, Code, Sparkles, Terminal } from "lucide-react";
 import profileImage from "@/assets/profile.jpg";
 import { fetchPortfolioData, PortfolioData } from "@/lib/csvData";
+import { usePortfolio } from "@/context/PortfolioContext";
 import { getAssetUrl } from "@/lib/utils";
 
 const Hero: React.FC = () => {
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
-  const [data, setData] = useState<PortfolioData | null>(null);
+  const { data } = usePortfolio();
 
   const resumeUrl = getAssetUrl("resume/Prem_Kumar_Resume.pdf");
 
+  const primaryResume = data?.resumes?.find((r) => r.isPrimary) || data?.resumes?.[0];
+
   const handleResumeDownload = async (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
+    if (primaryResume && primaryResume.fileData) {
+      try {
+        const link = document.createElement("a");
+        link.href = primaryResume.fileData;
+        link.download = primaryResume.name || "Prem_Kumar_Resume.pdf";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        return;
+      } catch {
+        window.open(primaryResume.fileData, "_blank");
+        return;
+      }
+    }
+
     try {
       let res = await fetch(resumeUrl);
       if (!res.ok) {
@@ -38,12 +56,6 @@ const Hero: React.FC = () => {
       window.open(resumeUrl, "_blank");
     }
   };
-
-  useEffect(() => {
-    fetchPortfolioData().then((fetched) => {
-      setData(fetched);
-    });
-  }, []);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const card = e.currentTarget.getBoundingClientRect();

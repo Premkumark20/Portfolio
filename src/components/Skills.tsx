@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Terminal, Layout, Server, Database, Wrench } from "lucide-react";
 import { TiltCard } from "@/components/ui/TiltCard";
 import { fetchPortfolioData } from "@/lib/csvData";
+import { usePortfolio } from "@/context/PortfolioContext";
 
 interface SkillCategory {
   title: string;
@@ -21,21 +22,19 @@ const defaultCategoryGradients = [
 ];
 
 const Skills: React.FC = () => {
-  const [skillCategories, setSkillCategories] = useState<SkillCategory[]>([]);
+  const { data } = usePortfolio();
 
-  useEffect(() => {
-    fetchPortfolioData().then((data) => {
-      if (data.skillsList && data.skillsList.length > 0) {
-        const mapped = data.skillsList.map((s, idx) => ({
-          title: s.category,
-          icon: defaultCategoryIcons[idx % defaultCategoryIcons.length],
-          gradient: defaultCategoryGradients[idx % defaultCategoryGradients.length],
-          skills: s.skills,
-        }));
-        setSkillCategories(mapped);
-      }
-    });
-  }, []);
+  const skillCategories = React.useMemo(() => {
+    if (data?.skillsList && data.skillsList.length > 0) {
+      return data.skillsList.map((s, idx) => ({
+        title: s.category,
+        icon: defaultCategoryIcons[idx % defaultCategoryIcons.length],
+        gradient: defaultCategoryGradients[idx % defaultCategoryGradients.length],
+        skills: s.skills,
+      }));
+    }
+    return [];
+  }, [data]);
 
   return (
     <section id="skills" className="py-12 sm:py-24 relative z-10">

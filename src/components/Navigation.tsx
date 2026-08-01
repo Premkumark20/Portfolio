@@ -2,10 +2,12 @@ import React, { useState, useEffect } from "react";
 import { Menu, X, Github, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fetchPortfolioData, PortfolioData } from "@/lib/csvData";
+import { usePortfolio } from "@/context/PortfolioContext";
 
 const navItems = [
   { name: "Home", href: "#home" },
   { name: "About", href: "#about" },
+  { name: "Experience", href: "#experience" },
   { name: "Services", href: "#services" },
   { name: "Education", href: "#education" },
   { name: "Projects", href: "#projects" },
@@ -18,23 +20,20 @@ const Navigation: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("home");
-  const [portfolio, setPortfolio] = useState<PortfolioData | null>(null);
-
-  useEffect(() => {
-    fetchPortfolioData().then((data) => {
-      setPortfolio(data);
-    });
-  }, []);
+  const { data: portfolio } = usePortfolio();
 
   const name = portfolio?.name || "";
   const title = portfolio?.title || "";
   const initials = name ? name.split(' ').map(n => n[0]).join('').slice(0, 2) : "";
 
+  const hasExperience = portfolio?.experiences && portfolio.experiences.length > 0;
+  const filteredNavItems = navItems.filter((item) => item.name !== "Experience" || hasExperience);
+
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
 
-      const sections = navItems.map((item) => item.href.substring(1));
+      const sections = filteredNavItems.map((item) => item.href.substring(1));
       const scrollPosition = window.scrollY + 200;
 
       for (let i = sections.length - 1; i >= 0; i--) {
@@ -48,7 +47,7 @@ const Navigation: React.FC = () => {
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [hasExperience]);
 
   const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
@@ -102,7 +101,7 @@ const Navigation: React.FC = () => {
 
           {/* Desktop Nav Items */}
           <nav className="hidden lg:flex items-center gap-1 bg-[#111827]/80 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10 shadow-xl">
-            {navItems.map((item) => {
+            {filteredNavItems.map((item) => {
               const isActive = activeSection === item.href.substring(1);
               return (
                 <a
@@ -161,7 +160,7 @@ const Navigation: React.FC = () => {
       {mobileMenuOpen && (
         <div className="lg:hidden fixed inset-x-0 top-[65px] bg-[#050816]/95 backdrop-blur-2xl border-b border-white/10 p-6 shadow-2xl animate-in slide-in-from-top-4 duration-200">
           <div className="flex flex-col gap-3">
-            {navItems.map((item) => {
+            {filteredNavItems.map((item) => {
               const isActive = activeSection === item.href.substring(1);
               return (
                 <a

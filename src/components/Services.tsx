@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Code, Server, Cloud, CheckCircle2 } from "lucide-react";
 import { TiltCard } from "@/components/ui/TiltCard";
 import { fetchPortfolioData } from "@/lib/csvData";
+import { usePortfolio } from "@/context/PortfolioContext";
 
 const defaultIcons = [Code, Server, Cloud];
 const defaultGradients = [
@@ -12,28 +13,20 @@ const defaultGradients = [
 ];
 
 const Services: React.FC = () => {
-  const [servicesList, setServicesList] = useState<Array<{
-    domain: string;
-    icon: any;
-    gradient: string;
-    description: string;
-    offerings: string[];
-  }>>([]);
+  const { data } = usePortfolio();
 
-  useEffect(() => {
-    fetchPortfolioData().then((data) => {
-      if (data.servicesList && data.servicesList.length > 0) {
-        const mapped = data.servicesList.map((s, idx) => ({
-          domain: s.title,
-          icon: defaultIcons[idx % defaultIcons.length],
-          gradient: defaultGradients[idx % defaultGradients.length],
-          description: s.desc,
-          offerings: s.tech,
-        }));
-        setServicesList(mapped);
-      }
-    });
-  }, []);
+  const servicesList = React.useMemo(() => {
+    if (data?.servicesList && data.servicesList.length > 0) {
+      return data.servicesList.map((s, idx) => ({
+        domain: s.title,
+        icon: defaultIcons[idx % defaultIcons.length],
+        gradient: defaultGradients[idx % defaultGradients.length],
+        description: s.desc,
+        offerings: s.tech,
+      }));
+    }
+    return [];
+  }, [data]);
 
   return (
     <section id="services" className="py-12 sm:py-24 relative z-10">

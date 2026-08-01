@@ -1,25 +1,25 @@
-import React, { useState, useEffect } from "react";
-import { ArrowUp, Github, Linkedin, Mail, Heart } from "lucide-react";
-import { fetchPortfolioData, PortfolioData } from "@/lib/csvData";
+import React from "react";
+import { ArrowUp, Github, Linkedin, Mail, KeyRound, ShieldCheck } from "lucide-react";
+import { usePortfolio } from "@/context/PortfolioContext";
 
 const Footer: React.FC = () => {
-  const [data, setData] = useState<PortfolioData | null>(null);
+  const { data, isAuthenticated } = usePortfolio();
 
-  useEffect(() => {
-    fetchPortfolioData().then((fetched) => {
-      setData(fetched);
-    });
-  }, []);
-
-  const name = data?.name || "";
+  const name = data?.name || "Portfolio";
   const title = data?.title || "";
-  const githubLink = data?.github_link || "";
-  const linkedinLink = data?.linkedin_link || "";
-  const emailLink = data?.email ? `mailto:${data.email}` : "";
-  const initials = name ? name.split(' ').map(n => n[0]).join('').slice(0, 2) : "";
+  const githubLink = data?.github_link || "#";
+  const linkedinLink = data?.linkedin_link || "#";
+  const emailLink = data?.email ? `mailto:${data.email}` : "#";
+  const initials = name ? name.split(' ').map(n => n[0]).join('').slice(0, 2) : "PK";
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleAdminClick = () => {
+    const base = import.meta.env.BASE_URL || '/';
+    const adminUrl = base.endsWith('/') ? `${base}admin` : `${base}/admin`;
+    window.open(adminUrl, '_blank');
   };
 
   return (
@@ -44,7 +44,7 @@ const Footer: React.FC = () => {
             </div>
           </div>
 
-          {/* Social Icons */}
+          {/* Social Icons & Admin Key Icon */}
           <div className="flex items-center gap-3">
             <a
               href={githubLink}
@@ -71,12 +71,29 @@ const Footer: React.FC = () => {
             >
               <Mail className="w-4 h-4" />
             </a>
+
+            {/* Admin Icon Button (Opens Admin Dashboard in New Tab) */}
+            <button
+              onClick={handleAdminClick}
+              className={`p-2.5 rounded-xl border transition-all flex items-center gap-1.5 cursor-pointer ${
+                isAuthenticated
+                  ? "bg-blue-600/20 hover:bg-blue-600/40 border-blue-500/40 text-blue-400 shadow-lg shadow-blue-500/20"
+                  : "bg-white/5 hover:bg-blue-500/20 border-white/10 hover:border-blue-500/30 text-gray-400 hover:text-blue-300"
+              }`}
+              title="Open Admin Management Panel (New Tab)"
+            >
+              {isAuthenticated ? (
+                <ShieldCheck className="w-4 h-4 text-blue-400" />
+              ) : (
+                <KeyRound className="w-4 h-4" />
+              )}
+            </button>
           </div>
 
           {/* Back to Top Button */}
           <div className="flex items-center gap-4">
             <span className="text-xs text-gray-400 flex items-center gap-1 font-mono">
-              Designed & Built with & React
+              Designed & Built with React
             </span>
             
             <button
@@ -90,8 +107,13 @@ const Footer: React.FC = () => {
 
         </div>
 
-        <div className="mt-8 pt-6 border-t border-white/5 text-center text-xs text-gray-400">
-          © {new Date().getFullYear()} {name}. All rights reserved. Built for recruiters, founders, & clients.
+        <div className="mt-8 pt-6 border-t border-white/5 text-center text-xs text-gray-400 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <div>
+            © {new Date().getFullYear()} {name}. All rights reserved. Built for recruiters, founders, & clients.
+          </div>
+          <div className="text-[11px] text-gray-500">
+            Admin Panel: <span className="text-blue-400 cursor-pointer hover:underline" onClick={handleAdminClick}>Open Admin in New Tab ↗</span>
+          </div>
         </div>
       </div>
     </footer>

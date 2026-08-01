@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { GraduationCap, School, Calendar } from "lucide-react";
 import { TiltCard } from "@/components/ui/TiltCard";
 import { fetchPortfolioData } from "@/lib/csvData";
+import { usePortfolio } from "@/context/PortfolioContext";
 
 interface EducationItem {
   type: string;
@@ -17,15 +18,8 @@ interface EducationItem {
 }
 
 const Education: React.FC = () => {
-  const [educationList, setEducationList] = useState<EducationItem[]>([]);
-
-  useEffect(() => {
-    fetchPortfolioData().then((data) => {
-      if (data.educationList && data.educationList.length > 0) {
-        setEducationList(data.educationList);
-      }
-    });
-  }, []);
+  const { data } = usePortfolio();
+  const educationList = data?.educationList || [];
 
   return (
     <section id="education" className="py-12 sm:py-24 relative z-10">

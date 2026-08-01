@@ -6,15 +6,10 @@ import { Mail, Phone, MapPin, Github, Linkedin, Code, Send, CheckCircle2, Sparkl
 import { Button } from "@/components/ui/button";
 import { TiltCard } from "@/components/ui/TiltCard";
 import { fetchPortfolioData, PortfolioData } from "@/lib/csvData";
+import { usePortfolio } from "@/context/PortfolioContext";
 
 const Contact: React.FC = () => {
-  const [portfolio, setPortfolio] = useState<PortfolioData | null>(null);
-
-  useEffect(() => {
-    fetchPortfolioData().then((data) => {
-      setPortfolio(data);
-    });
-  }, []);
+  const { data: portfolio } = usePortfolio();
 
   const emailVal = portfolio?.email || "premkumark182005@gmail.com";
   const phoneVal = portfolio?.phone || "+91 7358266257";

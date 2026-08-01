@@ -1,5 +1,24 @@
 import { Users, User } from "lucide-react";
 
+export interface ExperienceItem {
+  id?: string;
+  role: string;
+  company: string;
+  location: string;
+  duration: string;
+  summary: string;
+  tags: string[];
+  gradient?: string;
+}
+
+export interface ResumeItem {
+  id: string;
+  name: string;
+  uploadDate: string;
+  fileData: string;
+  isPrimary: boolean;
+}
+
 export interface PortfolioData {
   name: string;
   title: string;
@@ -18,6 +37,8 @@ export interface PortfolioData {
   statusBadge: string;
   heroTags: string[];
   bioSummary: string;
+  resumes?: ResumeItem[];
+  experiences: ExperienceItem[];
   projects: Array<{
     title: string;
     description: string;
@@ -64,6 +85,8 @@ export interface PortfolioData {
   }>;
 }
 
+
+
 export const parseCSVData = (csvText: string): PortfolioData => {
   try {
     const lines = csvText.trim().split('\n');
@@ -86,6 +109,8 @@ export const parseCSVData = (csvText: string): PortfolioData => {
       }
     }
 
+    const resumes: ResumeItem[] = [];
+    const experiences: ExperienceItem[] = [];
     const projects = [];
     const certifications = [];
     const educationList = [];
@@ -93,8 +118,39 @@ export const parseCSVData = (csvText: string): PortfolioData => {
     const skillsList = [];
     const statsList = [];
 
-    // Parse projects
+    // Parse resumes
     for (let i = 1; i <= 10; i++) {
+      const name = data[`resume${i}_name`];
+      if (name) {
+        resumes.push({
+          id: `resume-${i}`,
+          name,
+          uploadDate: data[`resume${i}_date`] || '',
+          fileData: data[`resume${i}_file`] || '',
+          isPrimary: data[`resume${i}_primary`] === 'true',
+        });
+      }
+    }
+
+    // Parse experiences
+    for (let i = 1; i <= 15; i++) {
+      const role = data[`exp${i}_role`];
+      if (role) {
+        experiences.push({
+          id: `exp-${i}`,
+          role,
+          company: data[`exp${i}_company`] || '',
+          location: data[`exp${i}_location`] || '',
+          duration: data[`exp${i}_duration`] || '',
+          summary: data[`exp${i}_summary`] || '',
+          tags: (data[`exp${i}_tags`] || '').split(',').map(t => t.trim()).filter(Boolean),
+          gradient: data[`exp${i}_gradient`] || 'from-primary to-primary-glow',
+        });
+      }
+    }
+
+    // Parse projects
+    for (let i = 1; i <= 15; i++) {
       const title = data[`project${i}_title`];
       if (title) {
         const rawProgress = parseInt(data[`project${i}_progress`], 10);
@@ -115,7 +171,7 @@ export const parseCSVData = (csvText: string): PortfolioData => {
     }
 
     // Parse certifications
-    for (let i = 1; i <= 10; i++) {
+    for (let i = 1; i <= 15; i++) {
       const title = data[`cert${i}_title`];
       if (title) {
         certifications.push({
@@ -130,7 +186,7 @@ export const parseCSVData = (csvText: string): PortfolioData => {
     }
 
     // Parse education items
-    for (let i = 1; i <= 10; i++) {
+    for (let i = 1; i <= 15; i++) {
       const degree = data[`edu${i}_degree`];
       if (degree) {
         let score = data[`edu${i}_score`] || '';
@@ -152,7 +208,7 @@ export const parseCSVData = (csvText: string): PortfolioData => {
     }
 
     // Parse services
-    for (let i = 1; i <= 10; i++) {
+    for (let i = 1; i <= 15; i++) {
       const title = data[`service${i}_title`];
       if (title) {
         servicesList.push({
@@ -164,7 +220,7 @@ export const parseCSVData = (csvText: string): PortfolioData => {
     }
 
     // Parse skills
-    for (let i = 1; i <= 10; i++) {
+    for (let i = 1; i <= 15; i++) {
       const category = data[`skill${i}_title`];
       if (category) {
         skillsList.push({
@@ -206,6 +262,8 @@ export const parseCSVData = (csvText: string): PortfolioData => {
       statusBadge: data.status_badge || '',
       heroTags,
       bioSummary: data.bio_summary || '',
+      resumes,
+      experiences,
       projects,
       certifications,
       educationList,
@@ -216,6 +274,152 @@ export const parseCSVData = (csvText: string): PortfolioData => {
   } catch (error) {
     console.error('Error parsing CSV:', error);
     return getDefaultData();
+  }
+};
+
+export const generateCSVFromData = (data: PortfolioData): string => {
+  const lines: string[] = ['field,value'];
+
+  const addLine = (field: string, value: any) => {
+    if (value === null || value === undefined) {
+      lines.push(`${field},`);
+      return;
+    }
+    const valStr = String(value);
+    if (valStr.includes(',') || valStr.includes('"') || valStr.includes('\n')) {
+      lines.push(`${field},"${valStr.replace(/"/g, '""')}"`);
+    } else {
+      lines.push(`${field},${valStr}`);
+    }
+  };
+
+  addLine('name', data.name);
+  addLine('title', data.title);
+  addLine('specialization', data.specialization);
+  addLine('education', data.education);
+  addLine('cgpa', data.cgpa);
+  addLine('email', data.email);
+  addLine('phone', data.phone);
+  addLine('address', data.address);
+  addLine('github_username', data.github_username);
+  addLine('github_link', data.github_link);
+  addLine('linkedin_username', data.linkedin_username);
+  addLine('linkedin_link', data.linkedin_link);
+  addLine('leetcode_username', data.leetcode_username);
+  addLine('leetcode_link', data.leetcode_link);
+  addLine('status_badge', data.statusBadge);
+  addLine('hero_tags', data.heroTags ? data.heroTags.join(', ') : '');
+  addLine('bio_summary', data.bioSummary);
+
+  // Resumes
+  (data.resumes || []).forEach((res, i) => {
+    const idx = i + 1;
+    addLine(`resume${idx}_name`, res.name);
+    addLine(`resume${idx}_date`, res.uploadDate);
+    addLine(`resume${idx}_file`, res.fileData);
+    addLine(`resume${idx}_primary`, res.isPrimary ? 'true' : 'false');
+  });
+
+  // Stats
+  (data.statsList || []).forEach((stat, i) => {
+    const idx = i + 1;
+    addLine(`stat${idx}_label`, stat.label);
+    addLine(`stat${idx}_value`, stat.value);
+    addLine(`stat${idx}_subtext`, stat.subtext);
+  });
+
+  // Services
+  (data.servicesList || []).forEach((srv, i) => {
+    const idx = i + 1;
+    addLine(`service${idx}_title`, srv.title);
+    addLine(`service${idx}_desc`, srv.desc);
+    addLine(`service${idx}_tech`, srv.tech ? srv.tech.join(', ') : '');
+  });
+
+  // Skills
+  (data.skillsList || []).forEach((sk, i) => {
+    const idx = i + 1;
+    addLine(`skill${idx}_title`, sk.category);
+    addLine(`skill${idx}_items`, sk.skills ? sk.skills.join(', ') : '');
+  });
+
+  // Projects
+  (data.projects || []).forEach((proj, i) => {
+    const idx = i + 1;
+    addLine(`project${idx}_title`, proj.title);
+    addLine(`project${idx}_description`, proj.description);
+    addLine(`project${idx}_tech`, proj.tech ? proj.tech.join(', ') : '');
+    addLine(`project${idx}_type`, proj.type);
+    addLine(`project${idx}_duration`, proj.duration);
+    addLine(`project${idx}_category`, proj.category);
+    addLine(`project${idx}_github`, proj.github || '');
+    addLine(`project${idx}_live`, proj.live || '');
+    addLine(`project${idx}_progress`, proj.progress);
+  });
+
+  // Certifications
+  (data.certifications || []).forEach((cert, i) => {
+    const idx = i + 1;
+    addLine(`cert${idx}_title`, cert.title);
+    addLine(`cert${idx}_provider`, cert.provider);
+    addLine(`cert${idx}_date`, cert.date);
+    addLine(`cert${idx}_id`, cert.certificateId);
+    addLine(`cert${idx}_link`, cert.link);
+    addLine(`cert${idx}_level`, cert.level);
+  });
+
+  // Education
+  (data.educationList || []).forEach((edu, i) => {
+    const idx = i + 1;
+    addLine(`edu${idx}_type`, edu.type);
+    addLine(`edu${idx}_institution`, edu.institution);
+    addLine(`edu${idx}_location`, edu.location);
+    addLine(`edu${idx}_degree`, edu.degree);
+    addLine(`edu${idx}_specialization`, edu.specialization);
+    addLine(`edu${idx}_period`, edu.period);
+    addLine(`edu${idx}_score`, edu.score);
+    addLine(`edu${idx}_status`, edu.statusBadge);
+  });
+
+  // Experiences
+  (data.experiences || []).forEach((exp, i) => {
+    const idx = i + 1;
+    addLine(`exp${idx}_role`, exp.role);
+    addLine(`exp${idx}_company`, exp.company);
+    addLine(`exp${idx}_location`, exp.location);
+    addLine(`exp${idx}_duration`, exp.duration);
+    addLine(`exp${idx}_summary`, exp.summary);
+    addLine(`exp${idx}_tags`, exp.tags ? exp.tags.join(', ') : '');
+    addLine(`exp${idx}_gradient`, exp.gradient || '');
+  });
+
+  return lines.join('\n');
+};
+
+const STORAGE_KEY = 'portfolio_custom_csv_data';
+
+export const saveCSVToStorage = (csvText: string) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, csvText);
+  } catch (err) {
+    console.error('Error saving CSV to localStorage:', err);
+  }
+};
+
+export const loadCSVFromStorage = (): string | null => {
+  try {
+    return localStorage.getItem(STORAGE_KEY);
+  } catch (err) {
+    console.error('Error loading CSV from localStorage:', err);
+    return null;
+  }
+};
+
+export const clearCSVFromStorage = () => {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (err) {
+    console.error('Error clearing CSV from localStorage:', err);
   }
 };
 
@@ -237,6 +441,7 @@ const getDefaultData = (): PortfolioData => ({
   statusBadge: '',
   heroTags: [],
   bioSummary: '',
+  experiences: [],
   projects: [],
   certifications: [],
   educationList: [],
@@ -246,17 +451,17 @@ const getDefaultData = (): PortfolioData => ({
 });
 
 // ── Singleton cache ──────────────────────────────────────────────────────────
-// The portfolio data is fetched ONCE per page-load and shared by every
-// component (Navigation, Hero, About, Footer …). No component ever triggers a
-// second network request.
 let _cachedData: PortfolioData | null = null;
 let _fetchPromise: Promise<PortfolioData> | null = null;
 
-export const fetchPortfolioData = async (): Promise<PortfolioData> => {
-  // Return in-memory cache immediately (fastest path)
-  if (_cachedData) return _cachedData;
+export const updateCachedData = (newData: PortfolioData) => {
+  _cachedData = newData;
+  const csv = generateCSVFromData(newData);
+  saveCSVToStorage(csv);
+};
 
-  // If a fetch is already in-flight, reuse that promise
+export const fetchPortfolioData = async (): Promise<PortfolioData> => {
+  if (_cachedData) return _cachedData;
   if (_fetchPromise) return _fetchPromise;
 
   _fetchPromise = _doFetch();
@@ -265,86 +470,34 @@ export const fetchPortfolioData = async (): Promise<PortfolioData> => {
 };
 
 const _doFetch = async (): Promise<PortfolioData> => {
-  const cacheBuster = `${Date.now()}`;
+  // 1. Check local storage custom CSV first (highest priority)
+  const customCsv = loadCSVFromStorage();
+  if (customCsv && customCsv.trim()) {
+    console.log('Portfolio data loaded from custom stored CSV.');
+    const localData = parseCSVData(customCsv);
+    _cachedData = localData;
+    return localData;
+  }
 
-  // ── 1. Local static CSV (always bundled with the site — fastest, always works) ──
+  // 2. Fetch local static portfolio.csv file
   try {
+    const cacheBuster = `${Date.now()}`;
     const base = (import.meta as any).env?.BASE_URL || './';
     const localCsvUrl = `${base}data/portfolio.csv?v=${cacheBuster}`;
     const res = await fetch(localCsvUrl, { cache: 'no-store' });
     if (res.ok) {
       const text = await res.text();
       if (text && text.trim()) {
-        console.log('Portfolio data loaded from local CSV.');
+        console.log('Portfolio data loaded from local CSV file.');
         const localData = parseCSVData(text);
-        // Update cache with local data so components render immediately
         _cachedData = localData;
-
-        // ── 2. Background refresh from Google Sheets (updates cache silently) ──
-        _refreshFromSheets();
-
         return localData;
       }
     }
-  } catch {
-    console.warn('Local CSV fetch failed, trying Google Sheets directly...');
+  } catch (error) {
+    console.warn('Local CSV fetch error:', error);
   }
 
-  // ── 3. Direct Google Sheets fetch if local CSV unavailable ──
-  const driveResult = await _fetchFromSheets();
-  if (driveResult) return driveResult;
-
-  // ── 4. Last resort empty defaults ──
+  // 3. Fallback to default data
   return getDefaultData();
-};
-
-const _fetchFromSheets = async (): Promise<PortfolioData | null> => {
-  const driveUrl = (import.meta as any).env?.VITE_CSV_URL || (process as any).env?.VITE_CSV_URL;
-  if (!driveUrl || !driveUrl.trim().startsWith('http')) return null;
-
-  let targetUrl = driveUrl.trim();
-  if (targetUrl.includes('docs.google.com/spreadsheets/d/')) {
-    if (!targetUrl.includes('/pub?') && !targetUrl.includes('/export?')) {
-      const match = targetUrl.match(/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
-      if (match?.[1]) {
-        targetUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`;
-      }
-    }
-  }
-
-  const fullUrl = `${targetUrl}${targetUrl.includes('?') ? '&' : '?'}_cb=${Date.now()}`;
-  const fetchOpts: RequestInit = {
-    cache: 'no-store',
-    headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0', 'Pragma': 'no-cache' },
-  };
-
-  const tryFetch = async (url: string): Promise<PortfolioData> => {
-    const res = await fetch(url, fetchOpts);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const text = await res.text();
-    if (!text?.trim() || (!text.includes('field') && !text.includes('name'))) throw new Error('Invalid CSV');
-    console.log('Portfolio data loaded from Google Sheets via:', url);
-    return parseCSVData(text);
-  };
-
-  try {
-    return await Promise.any([
-      fullUrl,
-      `https://corsproxy.io/?${encodeURIComponent(fullUrl)}`,
-      `https://api.allorigins.win/raw?url=${encodeURIComponent(fullUrl)}`,
-    ].map(tryFetch));
-  } catch {
-    console.warn('All Google Sheets candidates failed.');
-    return null;
-  }
-};
-
-// Silently refreshes the cache from Google Sheets in the background
-// after local data has already been served to components.
-const _refreshFromSheets = async () => {
-  const fresh = await _fetchFromSheets();
-  if (fresh) {
-    _cachedData = fresh;
-    console.log('Cache updated with latest Google Sheets data.');
-  }
 };

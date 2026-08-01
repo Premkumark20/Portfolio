@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Award, Code2, FolderGit2, GraduationCap } from "lucide-react";
 import { TiltCard } from "@/components/ui/TiltCard";
 import { fetchPortfolioData, PortfolioData } from "@/lib/csvData";
+import { usePortfolio } from "@/context/PortfolioContext";
 
 interface CounterProps {
   end: number;
@@ -64,13 +65,7 @@ const defaultColors = [
 ];
 
 const About: React.FC = () => {
-  const [portfolio, setPortfolio] = useState<PortfolioData | null>(null);
-
-  useEffect(() => {
-    fetchPortfolioData().then((data) => {
-      setPortfolio(data);
-    });
-  }, []);
+  const { data: portfolio } = usePortfolio();
 
   const statsList = portfolio?.statsList && portfolio.statsList.length > 0
     ? portfolio.statsList.map((s, idx) => {
