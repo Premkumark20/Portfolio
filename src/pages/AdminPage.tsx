@@ -968,36 +968,50 @@ export const AdminPage: React.FC = () => {
                     <label className="block text-gray-300 mb-1">Degree</label>
                     <input
                       type="text"
+                      placeholder="e.g. B.Tech Computer Science and Engineering"
                       value={eduForm.degree}
                       onChange={(e) => setEduForm({ ...eduForm, degree: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white"
+                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-500"
                     />
                   </div>
                   <div>
                     <label className="block text-gray-300 mb-1">Institution</label>
                     <input
                       type="text"
+                      placeholder="e.g. SRM Institute of Science and Technology"
                       value={eduForm.institution}
                       onChange={(e) => setEduForm({ ...eduForm, institution: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white"
+                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-500"
                     />
                   </div>
                   <div>
                     <label className="block text-gray-300 mb-1">Period</label>
                     <input
                       type="text"
+                      placeholder="e.g. 2023 - 2027"
                       value={eduForm.period}
                       onChange={(e) => setEduForm({ ...eduForm, period: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white"
+                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-500"
                     />
                   </div>
                   <div>
                     <label className="block text-gray-300 mb-1">Score</label>
                     <input
                       type="text"
+                      placeholder="e.g. 8.56 CGPA"
                       value={eduForm.score}
                       onChange={(e) => setEduForm({ ...eduForm, score: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white"
+                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-500"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-gray-300 mb-1">Category</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Under Graduate, State Board Higher Secondary Education, State Board Secondary Education"
+                      value={eduForm.specialization}
+                      onChange={(e) => setEduForm({ ...eduForm, specialization: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-500"
                     />
                   </div>
                 </div>
@@ -1048,6 +1062,9 @@ export const AdminPage: React.FC = () => {
                     <div>
                       <div className="font-bold text-white text-sm">{edu.degree}</div>
                       <div className="text-gray-400">{edu.institution} • {edu.period}</div>
+                      {edu.specialization && (
+                        <div className="text-xs text-blue-400 font-medium mt-1">Category: {edu.specialization}</div>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
