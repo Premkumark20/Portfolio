@@ -96,6 +96,10 @@ function reorderArray<T>(list: T[], fromIndex: number, toIndex: number): T[] {
   return result;
 }
 
+function withOrder<T>(arr: T[]): T[] {
+  return arr.map((item, i) => ({ ...item, order: i + 1 }));
+}
+
 export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [data, setData] = useState<PortfolioData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -308,7 +312,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Experience CRUD & Reorder
   const addExperience = (exp: ExperienceItem) => {
     if (!data) return;
-    const updated = { ...data, experiences: [exp, ...(data.experiences || [])] };
+    const updated = { ...data, experiences: withOrder([exp, ...(data.experiences || [])]) };
     saveAndSync(updated);
     toast.success('Experience added!');
   };
@@ -317,7 +321,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!data) return;
     const list = [...(data.experiences || [])];
     list[index] = exp;
-    const updated = { ...data, experiences: list };
+    const updated = { ...data, experiences: withOrder(list) };
     saveAndSync(updated);
     toast.success('Experience updated!');
   };
@@ -325,7 +329,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const deleteExperience = (index: number) => {
     if (!data) return;
     const list = (data.experiences || []).filter((_, i) => i !== index);
-    const updated = { ...data, experiences: list };
+    const updated = { ...data, experiences: withOrder(list) };
     saveAndSync(updated);
     toast.success('Experience deleted!');
   };
@@ -333,21 +337,21 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const moveExperience = (index: number, direction: 'up' | 'down') => {
     if (!data) return;
     const list = moveArrayItem(data.experiences || [], index, direction);
-    saveAndSync({ ...data, experiences: list });
+    saveAndSync({ ...data, experiences: withOrder(list) });
     toast.success('Experience reordered!');
   };
 
   const reorderExperiences = (fromIndex: number, toIndex: number) => {
     if (!data) return;
     const list = reorderArray(data.experiences || [], fromIndex, toIndex);
-    saveAndSync({ ...data, experiences: list });
+    saveAndSync({ ...data, experiences: withOrder(list) });
     toast.success('Experience order updated!');
   };
 
   // Projects CRUD & Reorder
   const addProject = (proj: PortfolioData['projects'][0]) => {
     if (!data) return;
-    const updated = { ...data, projects: [proj, ...(data.projects || [])] };
+    const updated = { ...data, projects: withOrder([proj, ...(data.projects || [])]) };
     saveAndSync(updated);
     toast.success('Project added!');
   };
@@ -356,7 +360,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!data) return;
     const list = [...(data.projects || [])];
     list[index] = proj;
-    const updated = { ...data, projects: list };
+    const updated = { ...data, projects: withOrder(list) };
     saveAndSync(updated);
     toast.success('Project updated!');
   };
@@ -364,7 +368,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const deleteProject = (index: number) => {
     if (!data) return;
     const list = (data.projects || []).filter((_, i) => i !== index);
-    const updated = { ...data, projects: list };
+    const updated = { ...data, projects: withOrder(list) };
     saveAndSync(updated);
     toast.success('Project deleted!');
   };
@@ -372,21 +376,21 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const moveProject = (index: number, direction: 'up' | 'down') => {
     if (!data) return;
     const list = moveArrayItem(data.projects || [], index, direction);
-    saveAndSync({ ...data, projects: list });
+    saveAndSync({ ...data, projects: withOrder(list) });
     toast.success('Project reordered!');
   };
 
   const reorderProjects = (fromIndex: number, toIndex: number) => {
     if (!data) return;
     const list = reorderArray(data.projects || [], fromIndex, toIndex);
-    saveAndSync({ ...data, projects: list });
+    saveAndSync({ ...data, projects: withOrder(list) });
     toast.success('Projects order updated!');
   };
 
   // Education CRUD & Reorder
   const addEducation = (edu: PortfolioData['educationList'][0]) => {
     if (!data) return;
-    const updated = { ...data, educationList: [edu, ...(data.educationList || [])] };
+    const updated = { ...data, educationList: withOrder([edu, ...(data.educationList || [])]) };
     saveAndSync(updated);
     toast.success('Education entry added!');
   };
@@ -395,7 +399,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!data) return;
     const list = [...(data.educationList || [])];
     list[index] = edu;
-    const updated = { ...data, educationList: list };
+    const updated = { ...data, educationList: withOrder(list) };
     saveAndSync(updated);
     toast.success('Education entry updated!');
   };
@@ -403,7 +407,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const deleteEducation = (index: number) => {
     if (!data) return;
     const list = (data.educationList || []).filter((_, i) => i !== index);
-    const updated = { ...data, educationList: list };
+    const updated = { ...data, educationList: withOrder(list) };
     saveAndSync(updated);
     toast.success('Education entry deleted!');
   };
@@ -411,21 +415,21 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const moveEducation = (index: number, direction: 'up' | 'down') => {
     if (!data) return;
     const list = moveArrayItem(data.educationList || [], index, direction);
-    saveAndSync({ ...data, educationList: list });
+    saveAndSync({ ...data, educationList: withOrder(list) });
     toast.success('Education reordered!');
   };
 
   const reorderEducation = (fromIndex: number, toIndex: number) => {
     if (!data) return;
     const list = reorderArray(data.educationList || [], fromIndex, toIndex);
-    saveAndSync({ ...data, educationList: list });
+    saveAndSync({ ...data, educationList: withOrder(list) });
     toast.success('Education order updated!');
   };
 
   // Services CRUD & Reorder
   const addService = (srv: PortfolioData['servicesList'][0]) => {
     if (!data) return;
-    const updated = { ...data, servicesList: [srv, ...(data.servicesList || [])] };
+    const updated = { ...data, servicesList: withOrder([srv, ...(data.servicesList || [])]) };
     saveAndSync(updated);
     toast.success('Service added!');
   };
@@ -434,7 +438,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!data) return;
     const list = [...(data.servicesList || [])];
     list[index] = srv;
-    const updated = { ...data, servicesList: list };
+    const updated = { ...data, servicesList: withOrder(list) };
     saveAndSync(updated);
     toast.success('Service updated!');
   };
@@ -442,7 +446,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const deleteService = (index: number) => {
     if (!data) return;
     const list = (data.servicesList || []).filter((_, i) => i !== index);
-    const updated = { ...data, servicesList: list };
+    const updated = { ...data, servicesList: withOrder(list) };
     saveAndSync(updated);
     toast.success('Service deleted!');
   };
@@ -450,21 +454,21 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const moveService = (index: number, direction: 'up' | 'down') => {
     if (!data) return;
     const list = moveArrayItem(data.servicesList || [], index, direction);
-    saveAndSync({ ...data, servicesList: list });
+    saveAndSync({ ...data, servicesList: withOrder(list) });
     toast.success('Service reordered!');
   };
 
   const reorderServices = (fromIndex: number, toIndex: number) => {
     if (!data) return;
     const list = reorderArray(data.servicesList || [], fromIndex, toIndex);
-    saveAndSync({ ...data, servicesList: list });
+    saveAndSync({ ...data, servicesList: withOrder(list) });
     toast.success('Services order updated!');
   };
 
   // Skills CRUD & Reorder
   const addSkillCategory = (sk: PortfolioData['skillsList'][0]) => {
     if (!data) return;
-    const updated = { ...data, skillsList: [...(data.skillsList || []), sk] };
+    const updated = { ...data, skillsList: withOrder([...(data.skillsList || []), sk]) };
     saveAndSync(updated);
     toast.success('Skill category added!');
   };
@@ -473,7 +477,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!data) return;
     const list = [...(data.skillsList || [])];
     list[index] = sk;
-    const updated = { ...data, skillsList: list };
+    const updated = { ...data, skillsList: withOrder(list) };
     saveAndSync(updated);
     toast.success('Skill category updated!');
   };
@@ -481,7 +485,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const deleteSkillCategory = (index: number) => {
     if (!data) return;
     const list = (data.skillsList || []).filter((_, i) => i !== index);
-    const updated = { ...data, skillsList: list };
+    const updated = { ...data, skillsList: withOrder(list) };
     saveAndSync(updated);
     toast.success('Skill category deleted!');
   };
@@ -489,21 +493,21 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const moveSkillCategory = (index: number, direction: 'up' | 'down') => {
     if (!data) return;
     const list = moveArrayItem(data.skillsList || [], index, direction);
-    saveAndSync({ ...data, skillsList: list });
+    saveAndSync({ ...data, skillsList: withOrder(list) });
     toast.success('Skill category reordered!');
   };
 
   const reorderSkills = (fromIndex: number, toIndex: number) => {
     if (!data) return;
     const list = reorderArray(data.skillsList || [], fromIndex, toIndex);
-    saveAndSync({ ...data, skillsList: list });
+    saveAndSync({ ...data, skillsList: withOrder(list) });
     toast.success('Skills order updated!');
   };
 
   // Certifications CRUD & Reorder
   const addCertification = (cert: PortfolioData['certifications'][0]) => {
     if (!data) return;
-    const updated = { ...data, certifications: [cert, ...(data.certifications || [])] };
+    const updated = { ...data, certifications: withOrder([cert, ...(data.certifications || [])]) };
     saveAndSync(updated);
     toast.success('Certification added!');
   };
@@ -512,7 +516,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!data) return;
     const list = [...(data.certifications || [])];
     list[index] = cert;
-    const updated = { ...data, certifications: list };
+    const updated = { ...data, certifications: withOrder(list) };
     saveAndSync(updated);
     toast.success('Certification updated!');
   };
@@ -520,7 +524,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const deleteCertification = (index: number) => {
     if (!data) return;
     const list = (data.certifications || []).filter((_, i) => i !== index);
-    const updated = { ...data, certifications: list };
+    const updated = { ...data, certifications: withOrder(list) };
     saveAndSync(updated);
     toast.success('Certification deleted!');
   };
@@ -528,21 +532,21 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const moveCertification = (index: number, direction: 'up' | 'down') => {
     if (!data) return;
     const list = moveArrayItem(data.certifications || [], index, direction);
-    saveAndSync({ ...data, certifications: list });
+    saveAndSync({ ...data, certifications: withOrder(list) });
     toast.success('Certification reordered!');
   };
 
   const reorderCertifications = (fromIndex: number, toIndex: number) => {
     if (!data) return;
     const list = reorderArray(data.certifications || [], fromIndex, toIndex);
-    saveAndSync({ ...data, certifications: list });
+    saveAndSync({ ...data, certifications: withOrder(list) });
     toast.success('Certifications order updated!');
   };
 
   // Stats CRUD & Reorder
   const updateStats = (stats: PortfolioData['statsList']) => {
     if (!data) return;
-    const updated = { ...data, statsList: stats };
+    const updated = { ...data, statsList: withOrder(stats) };
     saveAndSync(updated);
     toast.success('Statistics updated!');
   };
@@ -550,14 +554,14 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const moveStat = (index: number, direction: 'up' | 'down') => {
     if (!data) return;
     const list = moveArrayItem(data.statsList || [], index, direction);
-    saveAndSync({ ...data, statsList: list });
+    saveAndSync({ ...data, statsList: withOrder(list) });
     toast.success('Stat reordered!');
   };
 
   const reorderStats = (fromIndex: number, toIndex: number) => {
     if (!data) return;
     const list = reorderArray(data.statsList || [], fromIndex, toIndex);
-    saveAndSync({ ...data, statsList: list });
+    saveAndSync({ ...data, statsList: withOrder(list) });
     toast.success('Stats order updated!');
   };
 

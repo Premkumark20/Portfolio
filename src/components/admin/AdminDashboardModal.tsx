@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { 
   ShieldCheck, LogOut, Download, Upload, RotateCcw, Plus, Trash2, Edit2, Check, X,
-  Briefcase, User, Code2, GraduationCap, Wrench, Sparkles, Award, BarChart3
+  Briefcase, User, Code2, GraduationCap, Wrench, Sparkles, Award, BarChart3,
+  ChevronUp, ChevronDown
 } from 'lucide-react';
 import { usePortfolio } from '@/context/PortfolioContext';
 import { ExperienceItem, PortfolioData } from '@/lib/csvData';
@@ -19,22 +20,29 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
     addExperience,
     updateExperience,
     deleteExperience,
+    moveExperience,
     addProject,
     updateProject,
     deleteProject,
+    moveProject,
     addEducation,
     updateEducation,
     deleteEducation,
+    moveEducation,
     addService,
     updateService,
     deleteService,
+    moveService,
     addSkillCategory,
     updateSkillCategory,
     deleteSkillCategory,
+    moveSkillCategory,
     addCertification,
     updateCertification,
     deleteCertification,
+    moveCertification,
     updateStats,
+    moveStat,
     resetToDefaults,
     downloadCSV,
     importCSVContent,
@@ -482,19 +490,45 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                         ))}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        disabled={idx === 0}
+                        onClick={() => moveProject(idx, 'up')}
+                        className={`p-1.5 rounded-lg border transition-colors ${
+                          idx === 0
+                            ? 'bg-white/5 border-white/5 text-gray-600 cursor-not-allowed'
+                            : 'bg-white/10 border-white/15 text-gray-200 hover:bg-blue-600/30 hover:text-blue-300'
+                        }`}
+                        title="Move Up"
+                      >
+                        <ChevronUp className="w-4 h-4" />
+                      </button>
+                      <button
+                        disabled={idx === (data.projects || []).length - 1}
+                        onClick={() => moveProject(idx, 'down')}
+                        className={`p-1.5 rounded-lg border transition-colors ${
+                          idx === (data.projects || []).length - 1
+                            ? 'bg-white/5 border-white/5 text-gray-600 cursor-not-allowed'
+                            : 'bg-white/10 border-white/15 text-gray-200 hover:bg-blue-600/30 hover:text-blue-300'
+                        }`}
+                        title="Move Down"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
                       <button
                         onClick={() => {
                           setEditingProjectIndex(idx);
                           setProjForm(proj);
                         }}
                         className="p-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-300"
+                        title="Edit Project"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => deleteProject(idx)}
                         className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300"
+                        title="Delete Project"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -621,19 +655,45 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                       <div className="font-bold text-white text-sm">{edu.degree}</div>
                       <div className="text-gray-400">{edu.institution} • {edu.period}</div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        disabled={idx === 0}
+                        onClick={() => moveEducation(idx, 'up')}
+                        className={`p-1.5 rounded-lg border transition-colors ${
+                          idx === 0
+                            ? 'bg-white/5 border-white/5 text-gray-600 cursor-not-allowed'
+                            : 'bg-white/10 border-white/15 text-gray-200 hover:bg-blue-600/30 hover:text-blue-300'
+                        }`}
+                        title="Move Up"
+                      >
+                        <ChevronUp className="w-4 h-4" />
+                      </button>
+                      <button
+                        disabled={idx === (data.educationList || []).length - 1}
+                        onClick={() => moveEducation(idx, 'down')}
+                        className={`p-1.5 rounded-lg border transition-colors ${
+                          idx === (data.educationList || []).length - 1
+                            ? 'bg-white/5 border-white/5 text-gray-600 cursor-not-allowed'
+                            : 'bg-white/10 border-white/15 text-gray-200 hover:bg-blue-600/30 hover:text-blue-300'
+                        }`}
+                        title="Move Down"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
                       <button
                         onClick={() => {
                           setEditingEduIndex(idx);
                           setEduForm(edu);
                         }}
                         className="p-1.5 rounded-lg bg-blue-500/20 text-blue-300"
+                        title="Edit"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => deleteEducation(idx)}
                         className="p-1.5 rounded-lg bg-red-500/20 text-red-300"
+                        title="Delete"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -799,7 +859,31 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        disabled={idx === 0}
+                        onClick={() => moveExperience(idx, 'up')}
+                        className={`p-1.5 rounded-lg border transition-colors ${
+                          idx === 0
+                            ? 'bg-white/5 border-white/5 text-gray-600 cursor-not-allowed'
+                            : 'bg-white/10 border-white/15 text-gray-200 hover:bg-blue-600/30 hover:text-blue-300'
+                        }`}
+                        title="Move Up"
+                      >
+                        <ChevronUp className="w-4 h-4" />
+                      </button>
+                      <button
+                        disabled={idx === (data.experiences || []).length - 1}
+                        onClick={() => moveExperience(idx, 'down')}
+                        className={`p-1.5 rounded-lg border transition-colors ${
+                          idx === (data.experiences || []).length - 1
+                            ? 'bg-white/5 border-white/5 text-gray-600 cursor-not-allowed'
+                            : 'bg-white/10 border-white/15 text-gray-200 hover:bg-blue-600/30 hover:text-blue-300'
+                        }`}
+                        title="Move Down"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
                       <button
                         onClick={() => {
                           setEditingExperienceIndex(idx);
@@ -895,9 +979,33 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                       <div className="font-bold text-white">{srv.title}</div>
                       <div className="text-gray-400">{srv.desc}</div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => { setEditingSrvIndex(idx); setSrvForm(srv); }} className="p-1.5 rounded-lg bg-blue-500/20 text-blue-300"><Edit2 className="w-4 h-4" /></button>
-                      <button onClick={() => deleteService(idx)} className="p-1.5 rounded-lg bg-red-500/20 text-red-300"><Trash2 className="w-4 h-4" /></button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        disabled={idx === 0}
+                        onClick={() => moveService(idx, 'up')}
+                        className={`p-1.5 rounded-lg border transition-colors ${
+                          idx === 0
+                            ? 'bg-white/5 border-white/5 text-gray-600 cursor-not-allowed'
+                            : 'bg-white/10 border-white/15 text-gray-200 hover:bg-blue-600/30 hover:text-blue-300'
+                        }`}
+                        title="Move Up"
+                      >
+                        <ChevronUp className="w-4 h-4" />
+                      </button>
+                      <button
+                        disabled={idx === (data.servicesList || []).length - 1}
+                        onClick={() => moveService(idx, 'down')}
+                        className={`p-1.5 rounded-lg border transition-colors ${
+                          idx === (data.servicesList || []).length - 1
+                            ? 'bg-white/5 border-white/5 text-gray-600 cursor-not-allowed'
+                            : 'bg-white/10 border-white/15 text-gray-200 hover:bg-blue-600/30 hover:text-blue-300'
+                        }`}
+                        title="Move Down"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => { setEditingSrvIndex(idx); setSrvForm(srv); }} className="p-1.5 rounded-lg bg-blue-500/20 text-blue-300" title="Edit"><Edit2 className="w-4 h-4" /></button>
+                      <button onClick={() => deleteService(idx)} className="p-1.5 rounded-lg bg-red-500/20 text-red-300" title="Delete"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </div>
                 ))}
@@ -967,9 +1075,33 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                       <div className="font-bold text-white">{sk.category}</div>
                       <div className="text-gray-400 mt-1">{sk.skills.join(', ')}</div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => { setEditingSkillIndex(idx); setSkillForm(sk); }} className="p-1.5 rounded-lg bg-blue-500/20 text-blue-300"><Edit2 className="w-4 h-4" /></button>
-                      <button onClick={() => deleteSkillCategory(idx)} className="p-1.5 rounded-lg bg-red-500/20 text-red-300"><Trash2 className="w-4 h-4" /></button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        disabled={idx === 0}
+                        onClick={() => moveSkillCategory(idx, 'up')}
+                        className={`p-1.5 rounded-lg border transition-colors ${
+                          idx === 0
+                            ? 'bg-white/5 border-white/5 text-gray-600 cursor-not-allowed'
+                            : 'bg-white/10 border-white/15 text-gray-200 hover:bg-blue-600/30 hover:text-blue-300'
+                        }`}
+                        title="Move Up"
+                      >
+                        <ChevronUp className="w-4 h-4" />
+                      </button>
+                      <button
+                        disabled={idx === (data.skillsList || []).length - 1}
+                        onClick={() => moveSkillCategory(idx, 'down')}
+                        className={`p-1.5 rounded-lg border transition-colors ${
+                          idx === (data.skillsList || []).length - 1
+                            ? 'bg-white/5 border-white/5 text-gray-600 cursor-not-allowed'
+                            : 'bg-white/10 border-white/15 text-gray-200 hover:bg-blue-600/30 hover:text-blue-300'
+                        }`}
+                        title="Move Down"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => { setEditingSkillIndex(idx); setSkillForm(sk); }} className="p-1.5 rounded-lg bg-blue-500/20 text-blue-300" title="Edit"><Edit2 className="w-4 h-4" /></button>
+                      <button onClick={() => deleteSkillCategory(idx)} className="p-1.5 rounded-lg bg-red-500/20 text-red-300" title="Delete"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </div>
                 ))}
@@ -1060,9 +1192,33 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                       <div className="font-bold text-white">{cert.title}</div>
                       <div className="text-gray-400">{cert.provider} • {cert.date}</div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => { setEditingCertIndex(idx); setCertForm(cert); }} className="p-1.5 rounded-lg bg-blue-500/20 text-blue-300"><Edit2 className="w-4 h-4" /></button>
-                      <button onClick={() => deleteCertification(idx)} className="p-1.5 rounded-lg bg-red-500/20 text-red-300"><Trash2 className="w-4 h-4" /></button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        disabled={idx === 0}
+                        onClick={() => moveCertification(idx, 'up')}
+                        className={`p-1.5 rounded-lg border transition-colors ${
+                          idx === 0
+                            ? 'bg-white/5 border-white/5 text-gray-600 cursor-not-allowed'
+                            : 'bg-white/10 border-white/15 text-gray-200 hover:bg-blue-600/30 hover:text-blue-300'
+                        }`}
+                        title="Move Up"
+                      >
+                        <ChevronUp className="w-4 h-4" />
+                      </button>
+                      <button
+                        disabled={idx === (data.certifications || []).length - 1}
+                        onClick={() => moveCertification(idx, 'down')}
+                        className={`p-1.5 rounded-lg border transition-colors ${
+                          idx === (data.certifications || []).length - 1
+                            ? 'bg-white/5 border-white/5 text-gray-600 cursor-not-allowed'
+                            : 'bg-white/10 border-white/15 text-gray-200 hover:bg-blue-600/30 hover:text-blue-300'
+                        }`}
+                        title="Move Down"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => { setEditingCertIndex(idx); setCertForm(cert); }} className="p-1.5 rounded-lg bg-blue-500/20 text-blue-300" title="Edit"><Edit2 className="w-4 h-4" /></button>
+                      <button onClick={() => deleteCertification(idx)} className="p-1.5 rounded-lg bg-red-500/20 text-red-300" title="Delete"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </div>
                 ))}
@@ -1119,6 +1275,30 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                         }}
                         className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white"
                       />
+                    </div>
+                    <div className="flex items-center justify-end gap-1.5 sm:col-span-3 pt-1">
+                      <button
+                        disabled={idx === 0}
+                        onClick={() => moveStat(idx, 'up')}
+                        className={`px-2.5 py-1 rounded-lg border text-xs font-semibold flex items-center gap-1 transition-colors ${
+                          idx === 0
+                            ? 'bg-white/5 border-white/5 text-gray-600 cursor-not-allowed'
+                            : 'bg-white/10 border-white/15 text-gray-200 hover:bg-blue-600/30 hover:text-blue-300'
+                        }`}
+                      >
+                        <ChevronUp className="w-3.5 h-3.5" /> Move Up
+                      </button>
+                      <button
+                        disabled={idx === (data.statsList || []).length - 1}
+                        onClick={() => moveStat(idx, 'down')}
+                        className={`px-2.5 py-1 rounded-lg border text-xs font-semibold flex items-center gap-1 transition-colors ${
+                          idx === (data.statsList || []).length - 1
+                            ? 'bg-white/5 border-white/5 text-gray-600 cursor-not-allowed'
+                            : 'bg-white/10 border-white/15 text-gray-200 hover:bg-blue-600/30 hover:text-blue-300'
+                        }`}
+                      >
+                        <ChevronDown className="w-3.5 h-3.5" /> Move Down
+                      </button>
                     </div>
                   </div>
                 ))}

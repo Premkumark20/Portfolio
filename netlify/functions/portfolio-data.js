@@ -22,6 +22,28 @@ exports.handler = async (event, context) => {
     };
   }
 
+  if (event.httpMethod === 'POST') {
+    try {
+      const csvPath = path.join(process.cwd(), 'public', 'data', 'portfolio.csv');
+      const dir = path.dirname(csvPath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      fs.writeFileSync(csvPath, event.body || '', 'utf8');
+      return {
+        statusCode: 200,
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ success: true })
+      };
+    } catch (err) {
+      return {
+        statusCode: 500,
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: err.message })
+      };
+    }
+  }
+
   if (event.httpMethod !== 'GET') {
     return {
       statusCode: 405,

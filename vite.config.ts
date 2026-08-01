@@ -9,6 +9,37 @@ function resumeStoragePlugin() {
     name: 'resume-storage-plugin',
     configureServer(server: any) {
       server.middlewares.use(async (req: any, res: any, next: any) => {
+        if (req.url === '/api/portfolio/save' && req.method === 'POST') {
+          let body = '';
+          req.on('data', (chunk: any) => { body += chunk; });
+          req.on('end', () => {
+            try {
+              const publicCsvPath = path.resolve(__dirname, 'public/data/portfolio.csv');
+              const publicDir = path.dirname(publicCsvPath);
+              if (!fs.existsSync(publicDir)) {
+                fs.mkdirSync(publicDir, { recursive: true });
+              }
+              fs.writeFileSync(publicCsvPath, body, 'utf8');
+
+              const distCsvPath = path.resolve(__dirname, 'dist/data/portfolio.csv');
+              if (fs.existsSync(path.resolve(__dirname, 'dist'))) {
+                const distDir = path.dirname(distCsvPath);
+                if (!fs.existsSync(distDir)) {
+                  fs.mkdirSync(distDir, { recursive: true });
+                }
+                fs.writeFileSync(distCsvPath, body, 'utf8');
+              }
+
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ success: true }));
+            } catch (err: any) {
+              res.statusCode = 500;
+              res.end(JSON.stringify({ error: err.message }));
+            }
+          });
+          return;
+        }
+
         if (req.url === '/api/resume/upload' && req.method === 'POST') {
           let body = '';
           req.on('data', (chunk: any) => { body += chunk; });

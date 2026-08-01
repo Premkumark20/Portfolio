@@ -2,6 +2,7 @@ import { Users, User } from "lucide-react";
 
 export interface ExperienceItem {
   id?: string;
+  order?: number;
   role: string;
   company: string;
   location: string;
@@ -40,6 +41,7 @@ export interface PortfolioData {
   resumes?: ResumeItem[];
   experiences: ExperienceItem[];
   projects: Array<{
+    order?: number;
     title: string;
     description: string;
     tech: string[];
@@ -51,6 +53,7 @@ export interface PortfolioData {
     progress: number;
   }>;
   certifications: Array<{
+    order?: number;
     title: string;
     provider: string;
     date: string;
@@ -59,6 +62,7 @@ export interface PortfolioData {
     level: string;
   }>;
   educationList: Array<{
+    order?: number;
     type: string;
     institution: string;
     location: string;
@@ -70,15 +74,18 @@ export interface PortfolioData {
     isPrimary: boolean;
   }>;
   servicesList: Array<{
+    order?: number;
     title: string;
     desc: string;
     tech: string[];
   }>;
   skillsList: Array<{
+    order?: number;
     category: string;
     skills: string[];
   }>;
   statsList: Array<{
+    order?: number;
     label: string;
     value: string;
     subtext: string;
@@ -146,8 +153,11 @@ export const parseCSVData = (csvText: string): PortfolioData => {
     for (let i = 1; i <= 15; i++) {
       const role = data[`exp${i}_role`];
       if (role) {
+        const rawOrder = parseInt(data[`exp${i}_order`], 10);
+        const order = !isNaN(rawOrder) ? rawOrder : i;
         experiences.push({
           id: `exp-${i}`,
+          order,
           role,
           company: data[`exp${i}_company`] || '',
           location: data[`exp${i}_location`] || '',
@@ -158,15 +168,19 @@ export const parseCSVData = (csvText: string): PortfolioData => {
         });
       }
     }
+    experiences.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
     // Parse projects
     for (let i = 1; i <= 15; i++) {
       const title = data[`project${i}_title`];
       if (title) {
+        const rawOrder = parseInt(data[`project${i}_order`], 10);
+        const order = !isNaN(rawOrder) ? rawOrder : i;
         const rawProgress = parseInt(data[`project${i}_progress`], 10);
         const progress = !isNaN(rawProgress) ? rawProgress : Math.max(50, 90 - (i - 1) * 10);
 
         projects.push({
+          order,
           title,
           description: data[`project${i}_description`] || '',
           tech: (data[`project${i}_tech`] || '').split(',').map(t => t.trim()).filter(t => t),
@@ -179,12 +193,16 @@ export const parseCSVData = (csvText: string): PortfolioData => {
         });
       }
     }
+    projects.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
     // Parse certifications
     for (let i = 1; i <= 15; i++) {
       const title = data[`cert${i}_title`];
       if (title) {
+        const rawOrder = parseInt(data[`cert${i}_order`], 10);
+        const order = !isNaN(rawOrder) ? rawOrder : i;
         certifications.push({
+          order,
           title,
           provider: data[`cert${i}_provider`] || '',
           date: data[`cert${i}_date`] || '',
@@ -194,16 +212,20 @@ export const parseCSVData = (csvText: string): PortfolioData => {
         });
       }
     }
+    certifications.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
     // Parse education items
     for (let i = 1; i <= 15; i++) {
       const degree = data[`edu${i}_degree`];
       if (degree) {
+        const rawOrder = parseInt(data[`edu${i}_order`], 10);
+        const order = !isNaN(rawOrder) ? rawOrder : i;
         let score = data[`edu${i}_score`] || '';
         if (i === 1 && data.cgpa) {
           score = score.includes('CGPA') ? `${data.cgpa} CGPA` : data.cgpa;
         }
         educationList.push({
+          order,
           type: data[`edu${i}_type`] || (i === 1 ? 'Degree' : i === 2 ? 'High School' : 'Secondary School'),
           institution: data[`edu${i}_institution`] || '',
           location: data[`edu${i}_location`] || '',
@@ -216,41 +238,54 @@ export const parseCSVData = (csvText: string): PortfolioData => {
         });
       }
     }
+    educationList.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
     // Parse services
     for (let i = 1; i <= 15; i++) {
       const title = data[`service${i}_title`];
       if (title) {
+        const rawOrder = parseInt(data[`service${i}_order`], 10);
+        const order = !isNaN(rawOrder) ? rawOrder : i;
         servicesList.push({
+          order,
           title,
           desc: data[`service${i}_desc`] || '',
           tech: (data[`service${i}_tech`] || '').split(',').map(t => t.trim()).filter(t => t),
         });
       }
     }
+    servicesList.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
     // Parse skills
     for (let i = 1; i <= 15; i++) {
       const category = data[`skill${i}_title`];
       if (category) {
+        const rawOrder = parseInt(data[`skill${i}_order`], 10);
+        const order = !isNaN(rawOrder) ? rawOrder : i;
         skillsList.push({
+          order,
           category,
           skills: (data[`skill${i}_items`] || '').split(',').map(s => s.trim()).filter(s => s),
         });
       }
     }
+    skillsList.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
     // Parse stats
     for (let i = 1; i <= 10; i++) {
       const label = data[`stat${i}_label`];
       if (label) {
+        const rawOrder = parseInt(data[`stat${i}_order`], 10);
+        const order = !isNaN(rawOrder) ? rawOrder : i;
         statsList.push({
+          order,
           label,
           value: data[`stat${i}_value`] || '',
           subtext: data[`stat${i}_subtext`] || '',
         });
       }
     }
+    statsList.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
     const heroTags = (data.hero_tags || '').split(',').map(t => t.trim()).filter(Boolean);
 
@@ -333,6 +368,7 @@ export const generateCSVFromData = (data: PortfolioData): string => {
   // Stats
   (data.statsList || []).forEach((stat, i) => {
     const idx = i + 1;
+    addLine(`stat${idx}_order`, idx);
     addLine(`stat${idx}_label`, stat.label);
     addLine(`stat${idx}_value`, stat.value);
     addLine(`stat${idx}_subtext`, stat.subtext);
@@ -341,6 +377,7 @@ export const generateCSVFromData = (data: PortfolioData): string => {
   // Services
   (data.servicesList || []).forEach((srv, i) => {
     const idx = i + 1;
+    addLine(`service${idx}_order`, idx);
     addLine(`service${idx}_title`, srv.title);
     addLine(`service${idx}_desc`, srv.desc);
     addLine(`service${idx}_tech`, srv.tech ? srv.tech.join(', ') : '');
@@ -349,6 +386,7 @@ export const generateCSVFromData = (data: PortfolioData): string => {
   // Skills
   (data.skillsList || []).forEach((sk, i) => {
     const idx = i + 1;
+    addLine(`skill${idx}_order`, idx);
     addLine(`skill${idx}_title`, sk.category);
     addLine(`skill${idx}_items`, sk.skills ? sk.skills.join(', ') : '');
   });
@@ -356,6 +394,7 @@ export const generateCSVFromData = (data: PortfolioData): string => {
   // Projects
   (data.projects || []).forEach((proj, i) => {
     const idx = i + 1;
+    addLine(`project${idx}_order`, idx);
     addLine(`project${idx}_title`, proj.title);
     addLine(`project${idx}_description`, proj.description);
     addLine(`project${idx}_tech`, proj.tech ? proj.tech.join(', ') : '');
@@ -370,6 +409,7 @@ export const generateCSVFromData = (data: PortfolioData): string => {
   // Certifications
   (data.certifications || []).forEach((cert, i) => {
     const idx = i + 1;
+    addLine(`cert${idx}_order`, idx);
     addLine(`cert${idx}_title`, cert.title);
     addLine(`cert${idx}_provider`, cert.provider);
     addLine(`cert${idx}_date`, cert.date);
@@ -381,6 +421,7 @@ export const generateCSVFromData = (data: PortfolioData): string => {
   // Education
   (data.educationList || []).forEach((edu, i) => {
     const idx = i + 1;
+    addLine(`edu${idx}_order`, idx);
     addLine(`edu${idx}_type`, edu.type);
     addLine(`edu${idx}_institution`, edu.institution);
     addLine(`edu${idx}_location`, edu.location);
@@ -394,6 +435,7 @@ export const generateCSVFromData = (data: PortfolioData): string => {
   // Experiences
   (data.experiences || []).forEach((exp, i) => {
     const idx = i + 1;
+    addLine(`exp${idx}_order`, idx);
     addLine(`exp${idx}_role`, exp.role);
     addLine(`exp${idx}_company`, exp.company);
     addLine(`exp${idx}_location`, exp.location);
@@ -473,10 +515,23 @@ const getDefaultData = (): PortfolioData => ({
 let _cachedData: PortfolioData | null = null;
 let _fetchPromise: Promise<PortfolioData> | null = null;
 
+export const saveCSVToServer = async (csvText: string) => {
+  try {
+    await fetch('/api/portfolio/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/csv' },
+      body: csvText,
+    });
+  } catch (err) {
+    console.warn('Could not persist CSV to server endpoint:', err);
+  }
+};
+
 export const updateCachedData = (newData: PortfolioData) => {
   _cachedData = newData;
   const csv = generateCSVFromData(newData);
   saveCSVToStorage(csv);
+  saveCSVToServer(csv);
 };
 
 export const fetchPortfolioData = async (): Promise<PortfolioData> => {
