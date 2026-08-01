@@ -407,9 +407,10 @@ export const AdminPage: React.FC = () => {
                 <label className="block text-gray-300 mb-1 font-semibold">Full Name</label>
                 <input
                   type="text"
+                  placeholder="e.g. Alex Johnson"
                   value={personalForm.name}
                   onChange={(e) => setPersonalForm(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white placeholder-gray-500"
                 />
               </div>
 
@@ -417,9 +418,10 @@ export const AdminPage: React.FC = () => {
                 <label className="block text-gray-300 mb-1 font-semibold">Title / Headline</label>
                 <input
                   type="text"
+                  placeholder="e.g. Full Stack Developer"
                   value={personalForm.title}
                   onChange={(e) => setPersonalForm(prev => ({ ...prev, title: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white placeholder-gray-500"
                 />
               </div>
 
@@ -427,9 +429,10 @@ export const AdminPage: React.FC = () => {
                 <label className="block text-gray-300 mb-1 font-semibold">Specialization</label>
                 <input
                   type="text"
+                  placeholder="e.g. Specializing in Cloud & AI"
                   value={personalForm.specialization}
                   onChange={(e) => setPersonalForm(prev => ({ ...prev, specialization: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white placeholder-gray-500"
                 />
               </div>
 
@@ -437,9 +440,10 @@ export const AdminPage: React.FC = () => {
                 <label className="block text-gray-300 mb-1 font-semibold">Status Badge</label>
                 <input
                   type="text"
+                  placeholder="e.g. Open to Work • Backend Roles"
                   value={personalForm.statusBadge}
                   onChange={(e) => setPersonalForm(prev => ({ ...prev, statusBadge: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white placeholder-gray-500"
                 />
               </div>
 
@@ -447,9 +451,10 @@ export const AdminPage: React.FC = () => {
                 <label className="block text-gray-300 mb-1 font-semibold">Email</label>
                 <input
                   type="email"
+                  placeholder="e.g. alex.johnson@example.com"
                   value={personalForm.email}
                   onChange={(e) => setPersonalForm(prev => ({ ...prev, email: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white placeholder-gray-500"
                 />
               </div>
 
@@ -457,9 +462,10 @@ export const AdminPage: React.FC = () => {
                 <label className="block text-gray-300 mb-1 font-semibold">Phone</label>
                 <input
                   type="text"
+                  placeholder="e.g. +91 98765 43210"
                   value={personalForm.phone}
                   onChange={(e) => setPersonalForm(prev => ({ ...prev, phone: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white placeholder-gray-500"
                 />
               </div>
 
@@ -467,9 +473,10 @@ export const AdminPage: React.FC = () => {
                 <label className="block text-gray-300 mb-1 font-semibold">GitHub Link</label>
                 <input
                   type="text"
+                  placeholder="e.g. https://github.com/alexjohnson"
                   value={personalForm.github_link}
                   onChange={(e) => setPersonalForm(prev => ({ ...prev, github_link: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white placeholder-gray-500"
                 />
               </div>
 
@@ -477,9 +484,10 @@ export const AdminPage: React.FC = () => {
                 <label className="block text-gray-300 mb-1 font-semibold">LinkedIn Link</label>
                 <input
                   type="text"
+                  placeholder="e.g. https://linkedin.com/in/alexjohnson"
                   value={personalForm.linkedin_link}
                   onChange={(e) => setPersonalForm(prev => ({ ...prev, linkedin_link: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white placeholder-gray-500"
                 />
               </div>
 
@@ -487,9 +495,10 @@ export const AdminPage: React.FC = () => {
                 <label className="block text-gray-300 mb-1 font-semibold">Hero Tags (Comma-separated)</label>
                 <input
                   type="text"
+                  placeholder="e.g. Node.js, Docker, PostgreSQL, AWS"
                   value={personalForm.heroTagsInput}
                   onChange={(e) => setPersonalForm(prev => ({ ...prev, heroTagsInput: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white placeholder-gray-500"
                 />
               </div>
 
@@ -497,6 +506,7 @@ export const AdminPage: React.FC = () => {
                 <label className="block text-gray-300 mb-1 font-semibold">Bio Summary</label>
                 <textarea
                   rows={4}
+                  placeholder="e.g. I build scalable web applications with modern technologies..."
                   value={personalForm.bioSummary}
                   onChange={(e) => setPersonalForm(prev => ({ ...prev, bioSummary: e.target.value }))}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white"
@@ -573,7 +583,7 @@ export const AdminPage: React.FC = () => {
                     <label className="block text-gray-300 mb-1">Resume Name / Version Title</label>
                     <input
                       type="text"
-                      placeholder="e.g. Prem Kumar - Software Engineer Resume"
+                      placeholder="e.g. Alex Johnson - Software Engineer Resume"
                       value={resumeTitle}
                       onChange={(e) => setResumeTitle(e.target.value)}
                       className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white"
@@ -768,9 +778,10 @@ export const AdminPage: React.FC = () => {
                     <label className="block text-gray-300 mb-1">Title</label>
                     <input
                       type="text"
+                      placeholder="e.g. AI-Powered Task Manager"
                       value={projForm.title}
                       onChange={(e) => setProjForm({ ...projForm, title: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white"
+                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-500"
                     />
                   </div>
                   <div>
@@ -807,36 +818,40 @@ export const AdminPage: React.FC = () => {
                     <label className="block text-gray-300 mb-1">Description</label>
                     <textarea
                       rows={2}
+                      placeholder="e.g. Built a task manager app with real-time sync, notifications, and team collaboration features."
                       value={projForm.description}
                       onChange={(e) => setProjForm({ ...projForm, description: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white"
+                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-500"
                     />
                   </div>
                   <div className="sm:col-span-2">
                     <label className="block text-gray-300 mb-1">Tech Stack (Comma-separated)</label>
                     <input
                       type="text"
+                      placeholder="e.g. Vue.js, Node.js, MongoDB, Redis"
                       value={projForm.techInput ?? projForm.tech.join(', ')}
                       onChange={(e) => setProjForm({ ...projForm, techInput: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white"
+                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-500"
                     />
                   </div>
                   <div>
                     <label className="block text-gray-300 mb-1">GitHub Link</label>
                     <input
                       type="text"
+                      placeholder="e.g. https://github.com/username/repo"
                       value={projForm.github || ''}
                       onChange={(e) => setProjForm({ ...projForm, github: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white"
+                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-500"
                     />
                   </div>
                   <div>
                     <label className="block text-gray-300 mb-1">Live Demo Link</label>
                     <input
                       type="text"
+                      placeholder="e.g. https://myapp.vercel.app"
                       value={projForm.live || ''}
                       onChange={(e) => setProjForm({ ...projForm, live: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white"
+                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-500"
                     />
                   </div>
                 </div>
@@ -1305,15 +1320,15 @@ export const AdminPage: React.FC = () => {
               <div ref={formRef} className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-3 text-xs animate-fade-in scroll-mt-24">
                 <div>
                   <label className="block text-gray-300 mb-1">Service Title</label>
-                  <input type="text" value={srvForm.title} onChange={(e) => setSrvForm({ ...srvForm, title: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white" />
+                  <input type="text" placeholder="e.g. UI/UX Design & Prototyping" value={srvForm.title} onChange={(e) => setSrvForm({ ...srvForm, title: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-500" />
                 </div>
                 <div>
                   <label className="block text-gray-300 mb-1">Description</label>
-                  <textarea rows={2} value={srvForm.desc} onChange={(e) => setSrvForm({ ...srvForm, desc: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white" />
+                  <textarea rows={2} placeholder="e.g. Creating intuitive and beautiful user interfaces for web and mobile applications." value={srvForm.desc} onChange={(e) => setSrvForm({ ...srvForm, desc: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-500" />
                 </div>
                 <div>
                   <label className="block text-gray-300 mb-1 font-mono">Technologies (Comma-separated)</label>
-                  <input type="text" value={srvForm.techInput ?? srvForm.tech.join(', ')} onChange={(e) => setSrvForm({ ...srvForm, techInput: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white" />
+                  <input type="text" placeholder="e.g. Figma, Adobe XD, Tailwind CSS, Framer Motion" value={srvForm.techInput ?? srvForm.tech.join(', ')} onChange={(e) => setSrvForm({ ...srvForm, techInput: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-500" />
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
                   <button onClick={() => setShowForm(false)} className="px-4 py-2 rounded-xl bg-gray-700 text-white text-xs font-semibold">Cancel</button>
@@ -1395,11 +1410,11 @@ export const AdminPage: React.FC = () => {
               <div ref={formRef} className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-3 text-xs animate-fade-in scroll-mt-24">
                 <div>
                   <label className="block text-gray-300 mb-1">Category Name</label>
-                  <input type="text" value={skillForm.category} onChange={(e) => setSkillForm({ ...skillForm, category: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white" />
+                  <input type="text" placeholder="e.g. DevOps & Cloud" value={skillForm.category} onChange={(e) => setSkillForm({ ...skillForm, category: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-500" />
                 </div>
                 <div>
                   <label className="block text-gray-300 mb-1">Skills (Comma-separated)</label>
-                  <input type="text" value={skillForm.skillsInput ?? skillForm.skills.join(', ')} onChange={(e) => setSkillForm({ ...skillForm, skillsInput: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white" />
+                  <input type="text" placeholder="e.g. AWS, Kubernetes, Terraform, CI/CD, Ansible" value={skillForm.skillsInput ?? skillForm.skills.join(', ')} onChange={(e) => setSkillForm({ ...skillForm, skillsInput: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-500" />
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
                   <button onClick={() => setShowForm(false)} className="px-4 py-2 rounded-xl bg-gray-700 text-white text-xs font-semibold">Cancel</button>
@@ -1482,15 +1497,15 @@ export const AdminPage: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-gray-300 mb-1">Title</label>
-                    <input type="text" value={certForm.title} onChange={(e) => setCertForm({ ...certForm, title: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white" />
+                    <input type="text" placeholder="e.g. AWS Solutions Architect Associate" value={certForm.title} onChange={(e) => setCertForm({ ...certForm, title: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-500" />
                   </div>
                   <div>
                     <label className="block text-gray-300 mb-1">Provider</label>
-                    <input type="text" value={certForm.provider} onChange={(e) => setCertForm({ ...certForm, provider: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white" />
+                    <input type="text" placeholder="e.g. Amazon Web Services" value={certForm.provider} onChange={(e) => setCertForm({ ...certForm, provider: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-500" />
                   </div>
                   <div>
                     <label className="block text-gray-300 mb-1">Date</label>
-                    <input type="text" value={certForm.date} onChange={(e) => setCertForm({ ...certForm, date: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white" />
+                    <input type="text" placeholder="e.g. March 2024" value={certForm.date} onChange={(e) => setCertForm({ ...certForm, date: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-500" />
                   </div>
                   <div>
                     <label className="block text-gray-300 mb-1">Certificate URL / Link</label>
@@ -1604,39 +1619,42 @@ export const AdminPage: React.FC = () => {
                       <label className="block text-gray-400 mb-1">Label</label>
                       <input
                         type="text"
+                        placeholder="e.g. Projects Built"
                         value={stat.label}
                         onChange={(e) => {
                           const updated = [...statsForm];
                           updated[idx] = { ...updated[idx], label: e.target.value };
                           setStatsForm(updated);
                         }}
-                        className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white"
+                        className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-500"
                       />
                     </div>
                     <div>
                       <label className="block text-gray-400 mb-1">Value</label>
                       <input
                         type="text"
+                        placeholder="e.g. 20+"
                         value={stat.value}
                         onChange={(e) => {
                           const updated = [...statsForm];
                           updated[idx] = { ...updated[idx], value: e.target.value };
                           setStatsForm(updated);
                         }}
-                        className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white"
+                        className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-500"
                       />
                     </div>
                     <div>
                       <label className="block text-gray-400 mb-1">Subtext</label>
                       <input
                         type="text"
+                        placeholder="e.g. Web & Mobile Applications"
                         value={stat.subtext}
                         onChange={(e) => {
                           const updated = [...statsForm];
                           updated[idx] = { ...updated[idx], subtext: e.target.value };
                           setStatsForm(updated);
                         }}
-                        className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white"
+                        className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-500"
                       />
                     </div>
                   </div>
