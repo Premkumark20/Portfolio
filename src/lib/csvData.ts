@@ -1,4 +1,5 @@
 import { Users, User } from "lucide-react";
+import { supabase } from "./supabaseClient";
 
 export interface ExperienceItem {
   id?: string;
@@ -527,11 +528,28 @@ export const saveCSVToServer = async (csvText: string) => {
   }
 };
 
+export const saveCSVToSupabase = async (csvText: string) => {
+  if (!supabase) return;
+  try {
+    const { error } = await supabase
+      .from('portfolio_data')
+      .upsert({ id: 'main', content: csvText, updated_at: new Date().toISOString() });
+    if (error) {
+      console.warn('Supabase save warning:', error.message);
+    } else {
+      console.log('Portfolio CSV saved to Supabase cloud database.');
+    }
+  } catch (err) {
+    console.warn('Could not save CSV to Supabase:', err);
+  }
+};
+
 export const updateCachedData = (newData: PortfolioData) => {
   _cachedData = newData;
   const csv = generateCSVFromData(newData);
   saveCSVToStorage(csv);
   saveCSVToServer(csv);
+  saveCSVToSupabase(csv);
 };
 
 export const fetchPortfolioData = async (): Promise<PortfolioData> => {
@@ -544,7 +562,27 @@ export const fetchPortfolioData = async (): Promise<PortfolioData> => {
 };
 
 const _doFetch = async (): Promise<PortfolioData> => {
-  // 1. Check local storage custom CSV first (highest priority)
+  // 1. Check Supabase cloud database first (highest priority for cross-device real-time sync)
+  if (supabase) {
+    try {
+      const { data: row, error } = await supabase
+        .from('portfolio_data')
+        .select('content')
+        .eq('id', 'main')
+        .maybeSingle();
+
+      if (!error && row?.content && row.content.trim()) {
+        console.log('Portfolio data loaded from Supabase Cloud Database.');
+        const supabaseData = parseCSVData(row.content);
+        _cachedData = supabaseData;
+        return supabaseData;
+      }
+    } catch (err) {
+      console.warn('Supabase fetch warning:', err);
+    }
+  }
+
+  // 2. Check local storage custom CSV
   const customCsv = loadCSVFromStorage();
   if (customCsv && customCsv.trim()) {
     console.log('Portfolio data loaded from custom stored CSV.');
@@ -553,7 +591,7 @@ const _doFetch = async (): Promise<PortfolioData> => {
     return localData;
   }
 
-  // 2. Fetch local static portfolio.csv file
+  // 3. Fetch static portfolio.csv file
   try {
     const cacheBuster = `${Date.now()}`;
     const base = (import.meta as any).env?.BASE_URL || './';
@@ -572,6 +610,6 @@ const _doFetch = async (): Promise<PortfolioData> => {
     console.warn('Local CSV fetch error:', error);
   }
 
-  // 3. Fallback to default data
+  // 4. Fallback to default data
   return getDefaultData();
 };

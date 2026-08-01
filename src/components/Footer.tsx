@@ -107,12 +107,9 @@ const Footer: React.FC = () => {
 
         </div>
 
-        <div className="mt-8 pt-6 border-t border-white/5 text-center text-xs text-gray-400 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <div className="mt-8 pt-6 border-t border-white/5 text-center text-xs text-gray-400 flex items-center justify-center">
           <div>
             © {new Date().getFullYear()} {name}. All rights reserved. Built for recruiters, founders, & clients.
-          </div>
-          <div className="text-[11px] text-gray-500">
-            Admin Panel: <span className="text-blue-400 cursor-pointer hover:underline" onClick={handleAdminClick}>Open Admin in New Tab ↗</span>
           </div>
         </div>
       </div>

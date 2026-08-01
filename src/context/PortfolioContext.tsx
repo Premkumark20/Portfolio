@@ -10,6 +10,7 @@ import {
   parseCSVData,
   saveCSVToStorage
 } from '@/lib/csvData';
+import { supabase } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
 
 interface PortfolioContextType {
@@ -565,8 +566,15 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     toast.success('Stats order updated!');
   };
 
-  const resetToDefaults = () => {
+  const resetToDefaults = async () => {
     clearCSVFromStorage();
+    if (supabase) {
+      try {
+        await supabase.from('portfolio_data').delete().eq('id', 'main');
+      } catch (err) {
+        console.warn('Supabase reset warning:', err);
+      }
+    }
     window.location.reload();
   };
 
