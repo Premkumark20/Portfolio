@@ -28,7 +28,10 @@ jobs:
     - name: Build
       run: npm run build:gh-pages
       env:
-        VITE_CSV_URL: https://1drv.ms/x/c/910f63d4d3e8faa0/ETGAEciqICBJgbpClGVq2IsBg5GF8wOvuWyHdfchg_piig?e=nIsv55&download=1
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        VITE_ADMIN_USERNAME: ${{ secrets.VITE_ADMIN_USERNAME || vars.VITE_ADMIN_USERNAME }}
+        VITE_ADMIN_PASSWORD: ${{ secrets.VITE_ADMIN_PASSWORD }}
 
     - name: Deploy to gh-pages branch
       uses: peaceiris/actions-gh-pages@v3

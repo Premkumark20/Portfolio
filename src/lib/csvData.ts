@@ -1,5 +1,6 @@
 import { Users, User } from "lucide-react";
 import { supabase } from "./supabaseClient";
+import { DEFAULT_PORTFOLIO_CSV } from "@/data/defaultPortfolioCsv";
 
 export interface ExperienceItem {
   id?: string;
@@ -461,7 +462,15 @@ export const saveCSVToStorage = (csvText: string) => {
 
 export const loadCSVFromStorage = (): string | null => {
   try {
-    return localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw || !raw.trim()) return null;
+    const parsed = parseCSVData(raw);
+    if (!parsed.name || !parsed.name.trim()) {
+      console.warn('Disregarding invalid or empty CSV from localStorage.');
+      localStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
+    return raw;
   } catch (err) {
     console.error('Error loading CSV from localStorage:', err);
     return null;
@@ -476,45 +485,35 @@ export const clearCSVFromStorage = () => {
   }
 };
 
-const getDefaultData = (): PortfolioData => ({
-  name: '',
-  title: '',
-  specialization: '',
-  education: '',
-  cgpa: '',
-  email: '',
-  phone: '',
-  address: '',
-  github_username: '',
-  github_link: '',
-  linkedin_username: '',
-  linkedin_link: '',
-  leetcode_username: '',
-  leetcode_link: '',
-  statusBadge: '',
-  heroTags: [],
-  bioSummary: '',
-  resumes: [
-    {
-      id: 'resume-1',
-      name: 'Prem_Kumar_Resume.pdf',
-      uploadDate: 'May 2025',
-      fileData: '/resume/Prem_Kumar_Resume.pdf',
-      isPrimary: true,
+let _defaultParsedData: PortfolioData | null = null;
+
+export const getDefaultData = (): PortfolioData => {
+  if (!_defaultParsedData) {
+    _defaultParsedData = parseCSVData(DEFAULT_PORTFOLIO_CSV);
+  }
+  return _defaultParsedData;
+};
+
+export const getInitialPortfolioData = (): PortfolioData => {
+  const customCsv = loadCSVFromStorage();
+  if (customCsv && customCsv.trim()) {
+    const parsed = parseCSVData(customCsv);
+    if (parsed.name && parsed.name.trim()) {
+      _cachedData = parsed;
+      return parsed;
     }
-  ],
-  experiences: [],
-  projects: [],
-  certifications: [],
-  educationList: [],
-  servicesList: [],
-  skillsList: [],
-  statsList: [],
-});
+    clearCSVFromStorage();
+  }
+  const defaultData = getDefaultData();
+  _cachedData = defaultData;
+  return defaultData;
+};
 
 // ── Singleton cache ──────────────────────────────────────────────────────────
 let _cachedData: PortfolioData | null = null;
 let _fetchPromise: Promise<PortfolioData> | null = null;
+
+let _supabaseReachable = true;
 
 export const saveCSVToServer = async (csvText: string) => {
   try {
@@ -529,18 +528,20 @@ export const saveCSVToServer = async (csvText: string) => {
 };
 
 export const saveCSVToSupabase = async (csvText: string) => {
-  if (!supabase) return;
+  if (!supabase || !_supabaseReachable) return;
   try {
     const { error } = await supabase
       .from('portfolio_data')
       .upsert({ id: 'main', content: csvText, updated_at: new Date().toISOString() });
     if (error) {
-      console.warn('Supabase save warning:', error.message);
+      _supabaseReachable = false;
+      console.info('Supabase project paused or unreachable. Data is safely stored locally.');
     } else {
       console.log('Portfolio CSV saved to Supabase cloud database.');
     }
-  } catch (err) {
-    console.warn('Could not save CSV to Supabase:', err);
+  } catch (err: any) {
+    _supabaseReachable = false;
+    console.info('Supabase project paused or unreachable. Data is safely stored locally.');
   }
 };
 
@@ -553,7 +554,7 @@ export const updateCachedData = (newData: PortfolioData) => {
 };
 
 export const fetchPortfolioData = async (): Promise<PortfolioData> => {
-  if (_cachedData) return _cachedData;
+  if (_cachedData && _cachedData.name) return _cachedData;
   if (_fetchPromise) return _fetchPromise;
 
   _fetchPromise = _doFetch();
@@ -562,54 +563,83 @@ export const fetchPortfolioData = async (): Promise<PortfolioData> => {
 };
 
 const _doFetch = async (): Promise<PortfolioData> => {
-  // 1. Check Supabase cloud database first (highest priority for cross-device real-time sync)
-  if (supabase) {
-    try {
-      const { data: row, error } = await supabase
-        .from('portfolio_data')
-        .select('content')
-        .eq('id', 'main')
-        .maybeSingle();
-
-      if (!error && row?.content && row.content.trim()) {
-        console.log('Portfolio data loaded from Supabase Cloud Database.');
-        const supabaseData = parseCSVData(row.content);
-        _cachedData = supabaseData;
-        return supabaseData;
-      }
-    } catch (err) {
-      console.warn('Supabase fetch warning:', err);
+  // 1. Check valid custom stored CSV first
+  const customCsv = loadCSVFromStorage();
+  if (customCsv && customCsv.trim()) {
+    const localData = parseCSVData(customCsv);
+    if (localData.name && localData.name.trim()) {
+      console.log('Portfolio data loaded from custom stored CSV.');
+      _cachedData = localData;
+      return localData;
     }
   }
 
-  // 2. Check local storage custom CSV
-  const customCsv = loadCSVFromStorage();
-  if (customCsv && customCsv.trim()) {
-    console.log('Portfolio data loaded from custom stored CSV.');
-    const localData = parseCSVData(customCsv);
-    _cachedData = localData;
-    return localData;
-  }
-
-  // 3. Fetch static portfolio.csv file
+  // 2. Instant fetch static portfolio.csv file (from dist/public /data/portfolio.csv)
   try {
     const cacheBuster = `${Date.now()}`;
     const base = (import.meta as any).env?.BASE_URL || './';
-    const localCsvUrl = `${base}data/portfolio.csv?v=${cacheBuster}`;
-    const res = await fetch(localCsvUrl, { cache: 'no-store' });
-    if (res.ok) {
-      const text = await res.text();
-      if (text && text.trim()) {
-        console.log('Portfolio data loaded from local CSV file.');
-        const localData = parseCSVData(text);
-        _cachedData = localData;
-        return localData;
-      }
+    const urls = [
+      `${base}data/portfolio.csv?v=${cacheBuster}`,
+      `/data/portfolio.csv?v=${cacheBuster}`,
+      `./data/portfolio.csv?v=${cacheBuster}`,
+      `data/portfolio.csv?v=${cacheBuster}`,
+    ];
+
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, { cache: 'no-store' });
+        if (res.ok) {
+          const text = await res.text();
+          if (text && text.trim() && text.includes('field') && text.includes('name')) {
+            const parsed = parseCSVData(text);
+            if (parsed.name && parsed.name.trim()) {
+              console.log('Portfolio data loaded from local CSV file:', url);
+              _cachedData = parsed;
+              return parsed;
+            }
+          }
+        }
+      } catch {}
     }
   } catch (error) {
     console.warn('Local CSV fetch error:', error);
   }
 
-  // 4. Fallback to default data
-  return getDefaultData();
+  // 3. Fallback: Query Supabase only if local CSV was unavailable and Supabase is reachable
+  if (supabase && _supabaseReachable) {
+    try {
+      const timeoutPromise = new Promise<null>((_, reject) =>
+        setTimeout(() => reject(new Error('Supabase fetch timed out')), 2000)
+      );
+
+      const fetchPromise = (async () => {
+        const { data: row, error } = await supabase
+          .from('portfolio_data')
+          .select('content')
+          .eq('id', 'main')
+          .maybeSingle();
+
+        if (error || !row?.content) return null;
+        return row.content;
+      })();
+
+      const content = await Promise.race([fetchPromise, timeoutPromise]);
+      if (content && typeof content === 'string' && content.trim()) {
+        const supabaseData = parseCSVData(content);
+        if (supabaseData.name && supabaseData.name.trim()) {
+          console.log('Portfolio data loaded from Supabase Cloud Database.');
+          _cachedData = supabaseData;
+          return supabaseData;
+        }
+      }
+    } catch (err: any) {
+      _supabaseReachable = false;
+      console.info('Supabase cloud fetch skipped/unavailable, using bundled portfolio data.');
+    }
+  }
+
+  // 4. Default guaranteed fallback loaded from bundled portfolio.csv
+  const fallback = getDefaultData();
+  _cachedData = fallback;
+  return fallback;
 };

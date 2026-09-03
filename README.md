@@ -142,7 +142,10 @@ create table if not exists portfolio_data (
 
 alter table portfolio_data enable row level security;
 
+drop policy if exists "Allow public read" on portfolio_data;
 create policy "Allow public read" on portfolio_data for select using (true);
+
+drop policy if exists "Allow admin write" on portfolio_data;
 create policy "Allow admin write" on portfolio_data for all using (true);
 ```
 

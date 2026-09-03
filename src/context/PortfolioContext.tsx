@@ -8,7 +8,9 @@ import {
   generateCSVFromData,
   clearCSVFromStorage,
   parseCSVData,
-  saveCSVToStorage
+  saveCSVToStorage,
+  getInitialPortfolioData,
+  getDefaultData
 } from '@/lib/csvData';
 import { supabase } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
@@ -102,15 +104,17 @@ function withOrder<T>(arr: T[]): T[] {
 }
 
 export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [data, setData] = useState<PortfolioData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<PortfolioData>(getInitialPortfolioData);
+  const [loading, setLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     return sessionStorage.getItem(ADMIN_AUTH_KEY) === 'true';
   });
 
   useEffect(() => {
     fetchPortfolioData().then((fetched) => {
-      setData(fetched);
+      if (fetched && fetched.name) {
+        setData(fetched);
+      }
       setLoading(false);
     });
 
@@ -575,12 +579,39 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         console.warn('Supabase reset warning:', err);
       }
     }
+    setData(getDefaultData());
     window.location.reload();
   };
 
-  const downloadCSV = () => {
-    if (!data) return;
-    const csvContent = generateCSVFromData(data);
+  const downloadCSV = async () => {
+    let csvContent = '';
+    // 1. Fetch latest updated data directly from Supabase if available
+    if (supabase) {
+      try {
+        const { data: row, error } = await supabase
+          .from('portfolio_data')
+          .select('content')
+          .eq('id', 'main')
+          .maybeSingle();
+
+        if (!error && row?.content && row.content.trim()) {
+          csvContent = row.content;
+        }
+      } catch (err) {
+        console.warn('Could not fetch from Supabase for download, using current data:', err);
+      }
+    }
+
+    // 2. Fallback to current memory data if Supabase was empty or offline
+    if (!csvContent && data) {
+      csvContent = generateCSVFromData(data);
+    }
+
+    if (!csvContent) {
+      toast.error('No portfolio data available to download.');
+      return;
+    }
+
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -589,7 +620,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success('portfolio.csv downloaded successfully!');
+    toast.success('Downloaded latest updated data from Supabase!');
   };
 
   const importCSVContent = (csvText: string): boolean => {

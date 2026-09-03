@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   ShieldCheck, Plus, Trash2, Edit2, Check, X, GripVertical, Upload, ExternalLink,
   Briefcase, User, Code2, GraduationCap, Wrench, Sparkles, Award, BarChart3, Eye, EyeOff, Lock, AlertCircle,
-  FileText, Star, Download, KeyRound
+  FileText, Star, Download, KeyRound, Database, RotateCcw, FileSpreadsheet
 } from 'lucide-react';
 import { usePortfolio } from '@/context/PortfolioContext';
 import { ExperienceItem, PortfolioData, ResumeItem } from '@/lib/csvData';
@@ -49,9 +49,13 @@ export const AdminPage: React.FC = () => {
     reorderCertifications,
     updateStats,
     reorderStats,
+    downloadCSV,
+    importCSVContent,
+    resetToDefaults,
   } = usePortfolio();
 
   const [activeTab, setActiveTab] = useState<'personal' | 'resumes' | 'projects' | 'education' | 'experience' | 'services' | 'skills' | 'certifications' | 'stats' | 'security'>('personal');
+  const [securitySubSection, setSecuritySubSection] = useState<'security' | 'backup'>('security');
 
   // Form visibility & Auto-scroll Reference
   const [showForm, setShowForm] = useState(false);
@@ -1682,132 +1686,219 @@ export const AdminPage: React.FC = () => {
           </div>
         )}
 
-        {/* 10. SECURITY TAB */}
+        {/* 10. SECURITY & DATA BACKUP TAB */}
         {activeTab === 'security' && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            {/* Top Header & Sub-section Switcher on Top-Left */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                  <KeyRound className="w-5 h-5 text-blue-400" />
-                  <span>Admin Security & Credential Management</span>
+                  <ShieldCheck className="w-5 h-5 text-blue-400" />
+                  <span>Security & Data Management</span>
                 </h2>
-                <p className="text-xs text-gray-400 mt-1">Update your admin login username and password dynamically.</p>
+                <p className="text-xs text-gray-400 mt-1">Manage admin credentials and backup/restore portfolio CSV data.</p>
+              </div>
+
+              {/* Top-Left / Header Sub-section Switcher */}
+              <div className="inline-flex p-1 rounded-xl bg-black/40 border border-white/10 self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setSecuritySubSection('security')}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    securitySubSection === 'security'
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <KeyRound className="w-3.5 h-3.5" />
+                  <span>Admin Security</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSecuritySubSection('backup')}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    securitySubSection === 'backup'
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <Database className="w-3.5 h-3.5" />
+                  <span>Data Backup</span>
+                </button>
               </div>
             </div>
 
-            <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-6 max-w-2xl">
-              <div className="space-y-4 text-xs">
-                <div>
-                  <label className="block text-gray-300 mb-1 font-semibold">New Admin Username</label>
-                  <input
-                    type="text"
-                    value={secUsername}
-                    onChange={(e) => setSecUsername(e.target.value)}
-                    placeholder="Enter new admin username"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-sm focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-300 mb-1 font-semibold">New Admin Password</label>
-                  <div className="relative">
+            {/* SECTION 1: ADMIN SECURITY */}
+            {securitySubSection === 'security' && (
+              <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-6 max-w-2xl">
+                <div className="space-y-4 text-xs">
+                  <div>
+                    <label className="block text-gray-300 mb-1 font-semibold">New Admin Username</label>
                     <input
-                      type={showSecPass ? 'text' : 'password'}
-                      value={secPassword}
-                      onChange={(e) => setSecPassword(e.target.value)}
-                      placeholder="Enter new admin password"
+                      type="text"
+                      value={secUsername}
+                      onChange={(e) => setSecUsername(e.target.value)}
+                      placeholder="Enter new admin username"
                       className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-sm focus:outline-none focus:border-blue-500"
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowSecPass(!showSecPass)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
-                    >
-                      {showSecPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-300 mb-1 font-semibold">New Admin Password</label>
+                    <div className="relative">
+                      <input
+                        type={showSecPass ? 'text' : 'password'}
+                        value={secPassword}
+                        onChange={(e) => setSecPassword(e.target.value)}
+                        placeholder="Enter new admin password"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-sm focus:outline-none focus:border-blue-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSecPass(!showSecPass)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white cursor-pointer"
+                      >
+                        {showSecPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-300 mb-1 font-semibold">Confirm New Password</label>
+                    <input
+                      type="password"
+                      value={secConfirmPassword}
+                      onChange={(e) => setSecConfirmPassword(e.target.value)}
+                      placeholder="Confirm new admin password"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-sm focus:outline-none focus:border-blue-500"
+                    />
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-gray-300 mb-1 font-semibold">Confirm New Password</label>
-                  <input
-                    type="password"
-                    value={secConfirmPassword}
-                    onChange={(e) => setSecConfirmPassword(e.target.value)}
-                    placeholder="Confirm new admin password"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-sm focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-              </div>
-
-              {secError && (
-                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-                  <span>{secError}</span>
-                </div>
-              )}
-
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-                <button
-                  onClick={() => {
-                    setSecError('');
-                    if (!secUsername.trim() || !secPassword.trim()) {
-                      setSecError('Username and password cannot be empty.');
-                      return;
-                    }
-                    if (secPassword !== secConfirmPassword) {
-                      setSecError('Passwords do not match.');
-                      return;
-                    }
-                    const ok = updateAdminCredentials(secUsername, secPassword);
-                    if (ok) {
-                      setSecPassword('');
-                      setSecConfirmPassword('');
-                    }
-                  }}
-                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-blue-500/20"
-                >
-                  <Check className="w-4 h-4" />
-                  <span>Update Admin Credentials</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    resetAdminCredentials();
-                    setSecUsername('');
-                    setSecPassword('');
-                    setSecConfirmPassword('');
-                  }}
-                  className="px-4 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold flex items-center gap-1.5 border border-white/10"
-                >
-                  <span>Reset to Default / .env</span>
-                </button>
-              </div>
-
-              <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-xs space-y-2">
-                <div className="font-bold text-gray-200">How Credential Storage Works</div>
-                <p className="text-[11px] text-gray-400">
-                  Updating credentials here saves them to browser storage so your new login works instantly.
-                  Due to browser web security rules, client-side web apps cannot directly overwrite files on disk (<code className="text-blue-400 font-mono">.env</code>).
-                </p>
-                {secUsername && (
-                  <div className="p-3 rounded-lg bg-black/60 border border-white/10 font-mono text-[11px] text-emerald-400">
-                    <div>VITE_ADMIN_USERNAME={secUsername}</div>
-                    <div>VITE_ADMIN_PASSWORD={secPassword || '••••••••'}</div>
+                {secError && (
+                  <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                    <span>{secError}</span>
                   </div>
                 )}
-              </div>
 
-              <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300 space-y-1">
-                <div className="font-bold text-white flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-blue-400" />
-                  <span>Emergency Recovery Option</span>
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                  <button
+                    onClick={() => {
+                      setSecError('');
+                      if (!secUsername.trim() || !secPassword.trim()) {
+                        setSecError('Username and password cannot be empty.');
+                        return;
+                      }
+                      if (secPassword !== secConfirmPassword) {
+                        setSecError('Passwords do not match.');
+                        return;
+                      }
+                      const ok = updateAdminCredentials(secUsername, secPassword);
+                      if (ok) {
+                        setSecPassword('');
+                        setSecConfirmPassword('');
+                      }
+                    }}
+                    className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-blue-500/20 cursor-pointer"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>Update Admin Credentials</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      resetAdminCredentials();
+                      setSecUsername('');
+                      setSecPassword('');
+                      setSecConfirmPassword('');
+                    }}
+                    className="px-4 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold flex items-center gap-1.5 border border-white/10 cursor-pointer"
+                  >
+                    <span>Reset to Default / .env</span>
+                  </button>
                 </div>
-                <p className="text-[11px] text-gray-300">
-                  If you ever forget your custom credentials, master emergency login remains available using <code className="text-blue-300 font-mono">admin</code> / <code className="text-blue-300 font-mono">admin2615</code>.
-                </p>
+
+                <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-xs space-y-2">
+                  <div className="font-bold text-gray-200">How Credential Storage Works</div>
+                  <p className="text-[11px] text-gray-400 leading-relaxed">
+                    Updating credentials here saves them to secure browser storage so your new login works instantly.
+                    Due to browser security rules, client-side web apps cannot directly overwrite files on disk (<code className="text-blue-400 font-mono">.env</code>).
+                  </p>
+                  {secUsername && (
+                    <div className="p-3 rounded-lg bg-black/60 border border-white/10 font-mono text-[11px] text-emerald-400">
+                      <div>VITE_ADMIN_USERNAME={secUsername}</div>
+                      <div>VITE_ADMIN_PASSWORD={secPassword || '••••••••'}</div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300 space-y-1">
+                  <div className="font-bold text-white flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-blue-400" />
+                    <span>Emergency Recovery Option</span>
+                  </div>
+                  <p className="text-[11px] text-gray-300">
+                    If you ever forget your custom credentials, master emergency login remains available using <code className="text-blue-300 font-mono">admin</code> / <code className="text-blue-300 font-mono">admin2615</code>.
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* SECTION 2: DATA BACKUP (DOWNLOAD SUPABASE DATA) */}
+            {securitySubSection === 'backup' && (
+              <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-5 max-w-xl">
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <Database className="w-5 h-5 text-blue-400" />
+                    <span>Supabase Cloud Data Backup</span>
+                  </h3>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Download the latest updated data directly from Supabase.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-black/40 border border-white/10 space-y-3">
+                  <div className="space-y-1">
+                    <div className="font-semibold text-xs text-gray-200 flex items-center gap-1.5">
+                      <Download className="w-4 h-4 text-blue-400" />
+                      <span>Download Updated Data</span>
+                    </div>
+                    <p className="text-[11px] text-gray-400">
+                      Fetches current Supabase cloud content and exports as <code className="text-blue-300 font-mono">portfolio.csv</code>.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={downloadCSV}
+                    className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 transition-all cursor-pointer"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download CSV from Supabase</span>
+                  </button>
+                </div>
+
+                <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs">
+                  <div>
+                    <div className="font-semibold text-gray-300">Factory Reset</div>
+                    <p className="text-[11px] text-gray-400">Restore original defaults.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm("Reset all portfolio data to factory defaults?")) {
+                        resetToDefaults();
+                      }
+                    }}
+                    className="px-3.5 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Reset</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
