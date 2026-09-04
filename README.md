@@ -127,6 +127,11 @@ I am a **Full Stack Developer** and Computer Science & Engineering undergraduate
    pnpm build
    ```
 
+6. **Build for GitHub Pages**
+   ```bash
+   pnpm build:gh-pages
+   ```
+
 ---
 
 ## 🗄️ Supabase Database Setup
@@ -149,19 +154,27 @@ drop policy if exists "Allow admin write" on portfolio_data;
 create policy "Allow admin write" on portfolio_data for all using (true);
 ```
 
-Then add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to your **Netlify Environment Variables**.
+Then add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to your deployment environment variables.
 
 ---
 
-## 🔐 Admin Panel
+## 🔐 Admin Panel & Security Architecture
 
 Access the full admin dashboard at `/admin` (opens in a new tab from the footer, or navigate directly).
 
-### Features:
+### Authentication & Access Control:
+- **Salted SHA-256 Cryptographic Hashes**: Passwords and temporary credentials use salted hashing (`salt:hash`), protecting against rainbow table and dictionary lookup attacks.
+- **Default Administrator**: yourusername/ yourpassword (Salt: `default_auth`).
+- **Master Recovery Fail-safe**: `youradmin` / `youradminpassword` (Salt: `master_recovery`) — always available for recovery if custom credentials are forgotten.
+- **Custom Admin Credentials**: Change credentials at any time in the Security tab; synced to Supabase with dynamically generated cryptographic salts.
+- **Temporary Sharing Passes**: Generate time-bounded passes (1 hour to 30 days) with configurable permissions (**Read-Only** or **Can Edit**). Automatically revoked and logged out live upon expiration.
+- **Deletion Safeguards**: Center-screen confirmation modal container prevents accidental deletions across every section.
+
+### Features & Sections:
 | Section | Operations |
 | :--- | :--- |
 | Personal & Bio | Edit name, title, links, bio summary |
-| Resumes | Upload PDF/DOC files, set primary resume |
+| Resumes | Upload PDF/DOC files, set primary resume for download |
 | Projects | Add, edit, delete, drag-to-reorder |
 | Education | Add, edit, delete, drag-to-reorder, set category |
 | Work Experience | Add, edit, delete, drag-to-reorder |
@@ -169,7 +182,7 @@ Access the full admin dashboard at `/admin` (opens in a new tab from the footer,
 | Skills | Add categories & skills, drag-to-reorder |
 | Certifications | Add, upload PDF/image, drag-to-reorder |
 | Stats | Edit label, value, subtext, drag-to-reorder |
-| Security | Update admin username & password |
+| Security | Change admin credentials, generate/manage temporary passes, cloud backup |
 
 All changes are **instantly synced to Supabase** and reflected on all devices.
 

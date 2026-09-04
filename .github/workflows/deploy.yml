@@ -16,22 +16,27 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v3
+      with:
+        version: 9
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-        cache: 'npm'
+        cache: 'pnpm'
 
     - name: Install dependencies
-      run: npm install
+      run: pnpm install --no-frozen-lockfile
 
     - name: Build
-      run: npm run build:gh-pages
+      run: pnpm run build:gh-pages
       env:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
-        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
         VITE_ADMIN_USERNAME: ${{ secrets.VITE_ADMIN_USERNAME || vars.VITE_ADMIN_USERNAME }}
-        VITE_ADMIN_PASSWORD: ${{ secrets.VITE_ADMIN_PASSWORD }}
+        VITE_ADMIN_PASSWORD: ${{ secrets.VITE_ADMIN_PASSWORD || vars.VITE_ADMIN_PASSWORD }}
 
     - name: Deploy to gh-pages branch
       uses: peaceiris/actions-gh-pages@v3

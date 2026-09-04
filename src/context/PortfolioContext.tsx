@@ -4,6 +4,7 @@ import {
   PortfolioData, 
   ExperienceItem, 
   ResumeItem,
+  TempCredential,
   updateCachedData, 
   generateCSVFromData,
   clearCSVFromStorage,
@@ -12,6 +13,18 @@ import {
   getInitialPortfolioData,
   getDefaultData
 } from '@/lib/csvData';
+import { 
+  createSaltedHash,
+  verifySaltedHash,
+  DEFAULT_USER_HASH, 
+  DEFAULT_PASS_HASH, 
+  DEFAULT_ADMIN_USER_HASH, 
+  DEFAULT_ADMIN_PASS_HASH,
+  LEGACY_DEFAULT_USER_HASH,
+  LEGACY_DEFAULT_PASS_HASH,
+  LEGACY_DEFAULT_ADMIN_USER_HASH,
+  LEGACY_DEFAULT_ADMIN_PASS_HASH
+} from '@/lib/hash';
 import { supabase } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
 
@@ -19,10 +32,16 @@ interface PortfolioContextType {
   data: PortfolioData | null;
   loading: boolean;
   isAuthenticated: boolean;
-  login: (username: string, password: string) => boolean;
+  isTempUser: boolean;
+  tempPermission: 'read' | 'edit';
+  canEdit: boolean;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
-  updateAdminCredentials: (newUsername: string, newPassword: string) => boolean;
-  resetAdminCredentials: () => void;
+  updateAdminCredentials: (newUsername: string, newPassword: string) => Promise<boolean>;
+  resetAdminCredentials: () => Promise<void> | void;
+  createTempCredential: (username: string, password: string, durationHours: number, permission?: 'read' | 'edit') => Promise<boolean>;
+  updateTempPermission: (permission: 'read' | 'edit') => Promise<boolean>;
+  deleteTempCredential: () => Promise<void> | void;
   updatePersonalInfo: (fields: Partial<PortfolioData>) => void;
   // Resumes CRUD
   addResume: (resume: ResumeItem) => void;
@@ -77,6 +96,7 @@ interface PortfolioContextType {
 const PortfolioContext = createContext<PortfolioContextType | undefined>(undefined);
 
 const ADMIN_AUTH_KEY = 'portfolio_admin_auth_status';
+const ADMIN_ROLE_KEY = 'portfolio_admin_role';
 const CUSTOM_CREDS_KEY = 'portfolio_admin_custom_creds';
 
 function moveArrayItem<T>(arr: T[], index: number, direction: 'up' | 'down'): T[] {
@@ -109,11 +129,23 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     return sessionStorage.getItem(ADMIN_AUTH_KEY) === 'true';
   });
+  const [isTempUser, setIsTempUser] = useState<boolean>(() => {
+    return sessionStorage.getItem(ADMIN_ROLE_KEY) === 'temp';
+  });
+
+  const tempPermission: 'read' | 'edit' = data?.tempCredential?.permission || 'read';
+  const canEdit: boolean = isAuthenticated ? (!isTempUser || tempPermission === 'edit') : false;
 
   useEffect(() => {
     fetchPortfolioData().then((fetched) => {
       if (fetched && fetched.name) {
         setData(fetched);
+        if (sessionStorage.getItem(ADMIN_ROLE_KEY) === 'temp') {
+          if (!fetched.tempCredential || Date.now() > fetched.tempCredential.expiresAt) {
+            logout();
+            toast.error('Your access was deleted or expired.');
+          }
+        }
       }
       setLoading(false);
     });
@@ -127,6 +159,12 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           try {
             const fresh = parseCSVData(e.newValue);
             setData(fresh);
+            if (sessionStorage.getItem(ADMIN_ROLE_KEY) === 'temp') {
+              if (!fresh.tempCredential || Date.now() > fresh.tempCredential.expiresAt) {
+                logout();
+                toast.error('Your access was deleted or expired.');
+              }
+            }
           } catch {
             // ignore
           }
@@ -149,6 +187,12 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               if (customCsv) {
                 const fresh = parseCSVData(customCsv);
                 setData(fresh);
+                if (sessionStorage.getItem(ADMIN_ROLE_KEY) === 'temp') {
+                  if (!fresh.tempCredential || Date.now() > fresh.tempCredential.expiresAt) {
+                    logout();
+                    toast.error('Your access was deleted or expired.');
+                  }
+                }
               }
             }
           }
@@ -164,9 +208,85 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
   }, []);
 
-  const saveAndSync = (newData: PortfolioData) => {
+  // Real-time automatic logout for temporary credentials when expired or deleted
+  useEffect(() => {
+    if (!isAuthenticated || !isTempUser) return;
+
+    // Local clock expiration check every 2 seconds
+    const checkLocalExpiry = () => {
+      if (data?.tempCredential && Date.now() > data.tempCredential.expiresAt) {
+        logout();
+        toast.error('Your access has expired.');
+        return false;
+      }
+      const customCsv = localStorage.getItem('portfolio_custom_csv_data');
+      if (customCsv) {
+        try {
+          const parsed = parseCSVData(customCsv);
+          if (!parsed.tempCredential || Date.now() > parsed.tempCredential.expiresAt) {
+            logout();
+            toast.error('Your access was deleted or expired.');
+            return false;
+          }
+        } catch {}
+      }
+      return true;
+    };
+
+    checkLocalExpiry();
+    const localTimer = setInterval(checkLocalExpiry, 2000);
+
+    // Cloud revocation and permission sync check every 3 seconds
+    const checkCloudStatus = async () => {
+      if (!supabase) return;
+      try {
+        const { data: row, error } = await supabase
+          .from('portfolio_data')
+          .select('content')
+          .eq('id', 'main')
+          .maybeSingle();
+
+        if (!error && row?.content) {
+          const fresh = parseCSVData(row.content);
+          // If pass was deleted in Supabase or expired
+          if (!fresh.tempCredential || Date.now() > fresh.tempCredential.expiresAt) {
+            logout();
+            toast.error('Your access was deleted or revoked by the administrator.');
+            return;
+          }
+
+          // If temp user hash changed (admin generated a different pass)
+          if (data?.tempCredential && fresh.tempCredential.userHash !== data.tempCredential.userHash) {
+            logout();
+            toast.error('Your access was revoked by the administrator.');
+            return;
+          }
+
+          // If admin toggled read/edit permission in cloud, update state live
+          if (fresh.tempCredential && data?.tempCredential && fresh.tempCredential.permission !== data.tempCredential.permission) {
+            setData(fresh);
+            toast.info(`Access permission updated: ${fresh.tempCredential.permission === 'edit' ? 'Can Edit' : 'Read-Only'}`);
+          }
+        } else if (!error && !row) {
+          logout();
+          toast.error('Your access was deleted.');
+        }
+      } catch (err) {
+        console.warn('Cloud pass polling check error:', err);
+      }
+    };
+
+    const cloudTimer = setInterval(checkCloudStatus, 3000);
+
+    return () => {
+      clearInterval(localTimer);
+      clearInterval(cloudTimer);
+    };
+  }, [isAuthenticated, isTempUser, data?.tempCredential]);
+
+  const saveAndSync = async (newData: PortfolioData): Promise<boolean> => {
     setData(newData);
-    updateCachedData(newData);
+    const cloudOk = await updateCachedData(newData);
 
     // Broadcast reload event to all open portfolio tabs
     if (typeof BroadcastChannel !== 'undefined') {
@@ -178,64 +298,359 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         console.warn('BroadcastChannel message error:', err);
       }
     }
+    return cloudOk;
   };
 
-  const login = (username: string, password: string): boolean => {
-    const inputUser = username.trim();
-    const inputPass = password.trim();
+  const checkTempCredentials = async (
+    inputUser: string,
+    inputPass: string,
+    sourceData?: PortfolioData | null
+  ): Promise<boolean> => {
+    const target = sourceData || data;
+    const cred = target?.tempCredential;
+    if (!cred || !cred.userHash || !cred.passHash) return false;
+    
+    const userValid = await verifySaltedHash(inputUser, cred.userHash);
+    const passValid = await verifySaltedHash(inputPass, cred.passHash);
+    if (!userValid || !passValid) return false;
 
-    // Check custom UI-configured credentials
-    const customCredsRaw = localStorage.getItem(CUSTOM_CREDS_KEY);
-    let customUser = '';
-    let customPass = '';
-    if (customCredsRaw) {
-      try {
-        const parsed = JSON.parse(customCredsRaw);
-        customUser = (parsed.username || '').trim();
-        customPass = (parsed.password || '').trim();
-      } catch {}
+    // Check validity
+    if (Date.now() > cred.expiresAt) {
+      toast.error('Access pass has expired!');
+      return false;
     }
 
-    const envUser = (import.meta.env.VITE_ADMIN_USERNAME || 'admin').trim();
-    const envPass = String(import.meta.env.VITE_ADMIN_PASSWORD || 'admin2615').trim();
+    setIsAuthenticated(true);
+    setIsTempUser(true);
+    sessionStorage.setItem(ADMIN_AUTH_KEY, 'true');
+    sessionStorage.setItem(ADMIN_ROLE_KEY, 'temp');
+    toast.success('Access granted successfully!');
+    return true;
+  };
 
-    const matchesCustom = customUser && customPass && inputUser === customUser && inputPass === customPass;
-    const matchesEnv = inputUser === envUser && inputPass === envPass;
-    const matchesRecovery = inputUser === 'admin' && inputPass === 'admin2615';
+  const login = async (username: string, password: string): Promise<boolean> => {
+    const inputUser = username.trim();
+    const inputPass = password.trim();
+    if (!inputUser || !inputPass) {
+      toast.error('Username and password are required!');
+      return false;
+    }
 
-    if (matchesCustom || matchesEnv || matchesRecovery) {
+    // 1. Master Administrator Account (admin / admin2615) - ALWAYS usable fail-safe
+    const isMaster = (
+      (await verifySaltedHash(inputUser, DEFAULT_ADMIN_USER_HASH) && await verifySaltedHash(inputPass, DEFAULT_ADMIN_PASS_HASH)) ||
+      (await verifySaltedHash(inputUser, LEGACY_DEFAULT_ADMIN_USER_HASH) && await verifySaltedHash(inputPass, LEGACY_DEFAULT_ADMIN_PASS_HASH)) ||
+      (inputUser === 'admin' && inputPass === 'admin2615')
+    );
+
+    if (isMaster) {
       setIsAuthenticated(true);
+      setIsTempUser(false);
       sessionStorage.setItem(ADMIN_AUTH_KEY, 'true');
+      sessionStorage.setItem(ADMIN_ROLE_KEY, 'admin');
       toast.success('Administrator authenticated successfully!');
       return true;
     }
-    toast.error('Invalid admin credentials!');
+
+    // 2. Check Custom Admin Credentials (stored in data/CSV or localStorage)
+    const customCredsRaw = localStorage.getItem(CUSTOM_CREDS_KEY);
+    let localCustomUserHash = '';
+    let localCustomPassHash = '';
+    if (customCredsRaw) {
+      try {
+        const parsed = JSON.parse(customCredsRaw);
+        localCustomUserHash = parsed.userHash || '';
+        localCustomPassHash = parsed.passHash || '';
+      } catch {}
+    }
+
+    const activeCustomUserHash = data?.adminUserHash || localCustomUserHash;
+    const activeCustomPassHash = data?.adminPassHash || localCustomPassHash;
+
+    // Check active custom credentials locally first
+    if (activeCustomUserHash && activeCustomPassHash) {
+      const isCustomValid = 
+        await verifySaltedHash(inputUser, activeCustomUserHash) &&
+        await verifySaltedHash(inputPass, activeCustomPassHash);
+      if (isCustomValid) {
+        setIsAuthenticated(true);
+        setIsTempUser(false);
+        sessionStorage.setItem(ADMIN_AUTH_KEY, 'true');
+        sessionStorage.setItem(ADMIN_ROLE_KEY, 'admin');
+        toast.success('Administrator authenticated successfully!');
+        return true;
+      }
+    }
+
+    // 3. Check Temporary Credentials against local data
+    if (await checkTempCredentials(inputUser, inputPass)) {
+      return true;
+    }
+
+    // 4. Live Supabase Fallback Check:
+    // Query Supabase cloud directly for live cross-device credentials verification
+    let cloudHasCustom = false;
+    if (supabase) {
+      try {
+        const { data: row, error } = await supabase
+          .from('portfolio_data')
+          .select('content')
+          .eq('id', 'main')
+          .maybeSingle();
+
+        if (!error && row?.content) {
+          const fresh = parseCSVData(row.content);
+          if (fresh.name) {
+            saveCSVToStorage(row.content);
+            setData(fresh);
+
+            // Check custom admin credentials with fresh cloud data
+            if (fresh.adminUserHash && fresh.adminPassHash) {
+              cloudHasCustom = true;
+              const isCloudCustomValid =
+                await verifySaltedHash(inputUser, fresh.adminUserHash) &&
+                await verifySaltedHash(inputPass, fresh.adminPassHash);
+              if (isCloudCustomValid) {
+                setIsAuthenticated(true);
+                setIsTempUser(false);
+                sessionStorage.setItem(ADMIN_AUTH_KEY, 'true');
+                sessionStorage.setItem(ADMIN_ROLE_KEY, 'admin');
+                toast.success('Administrator authenticated successfully!');
+                return true;
+              }
+            }
+
+            // Check temporary credentials with fresh cloud data
+            if (await checkTempCredentials(inputUser, inputPass, fresh)) {
+              return true;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Supabase live credentials verification error:', err);
+      }
+    }
+
+    // 5. Check fresh static portfolio.csv (handles direct file updates on disk or GitHub pages deployment)
+    let staticHasCustom = false;
+    try {
+      const res = await fetch(`/data/portfolio.csv?v=${Date.now()}`, { cache: 'no-store' });
+      if (res.ok) {
+        const text = await res.text();
+        if (text && text.includes('field') && text.includes('name')) {
+          const parsed = parseCSVData(text);
+          if (parsed.adminUserHash && parsed.adminPassHash) {
+            staticHasCustom = true;
+            const isStaticCustomValid =
+              await verifySaltedHash(inputUser, parsed.adminUserHash) &&
+              await verifySaltedHash(inputPass, parsed.adminPassHash);
+            if (isStaticCustomValid) {
+              setData(parsed);
+              saveCSVToStorage(text);
+              setIsAuthenticated(true);
+              setIsTempUser(false);
+              sessionStorage.setItem(ADMIN_AUTH_KEY, 'true');
+              sessionStorage.setItem(ADMIN_ROLE_KEY, 'admin');
+              toast.success('Administrator authenticated successfully!');
+              return true;
+            }
+          }
+        }
+      }
+    } catch {}
+
+    // 6. If custom admin credentials are configured (locally, in cloud, or in CSV),
+    // the old default credentials MUST NOT work! Only the updated credentials are valid.
+    const hasCustomCreds = Boolean(
+      (activeCustomUserHash && activeCustomPassHash) ||
+      cloudHasCustom ||
+      staticHasCustom
+    );
+
+    if (hasCustomCreds) {
+      toast.error('Invalid administrator credentials or expired pass!');
+      return false;
+    }
+
+    // 7. Default account (premkumar / premkumarofficial) works when NO custom credentials have been configured (or after "Reset to Default")
+    const isDefault = (
+      (await verifySaltedHash(inputUser, DEFAULT_USER_HASH) && await verifySaltedHash(inputPass, DEFAULT_PASS_HASH)) ||
+      (await verifySaltedHash(inputUser, LEGACY_DEFAULT_USER_HASH) && await verifySaltedHash(inputPass, LEGACY_DEFAULT_PASS_HASH)) ||
+      (inputUser === 'premkumar' && inputPass === 'premkumarofficial')
+    );
+
+    if (isDefault) {
+      setIsAuthenticated(true);
+      setIsTempUser(false);
+      sessionStorage.setItem(ADMIN_AUTH_KEY, 'true');
+      sessionStorage.setItem(ADMIN_ROLE_KEY, 'admin');
+      toast.success('Administrator authenticated successfully!');
+      return true;
+    }
+
+    // Optional: .env credentials fallback
+    const envUser = (import.meta.env.VITE_ADMIN_USERNAME || '').trim();
+    const envPass = String(import.meta.env.VITE_ADMIN_PASSWORD || '').trim();
+    if (envUser && envPass) {
+      if (inputUser === envUser && inputPass === envPass) {
+        setIsAuthenticated(true);
+        setIsTempUser(false);
+        sessionStorage.setItem(ADMIN_AUTH_KEY, 'true');
+        sessionStorage.setItem(ADMIN_ROLE_KEY, 'admin');
+        toast.success('Administrator authenticated successfully!');
+        return true;
+      }
+    }
+
+    toast.error('Invalid administrator credentials or expired pass!');
     return false;
   };
 
   const logout = () => {
     setIsAuthenticated(false);
+    setIsTempUser(false);
     sessionStorage.removeItem(ADMIN_AUTH_KEY);
+    sessionStorage.removeItem(ADMIN_ROLE_KEY);
     toast.info('Logged out from admin panel.');
   };
 
-  const updateAdminCredentials = (newUsername: string, newPassword: string): boolean => {
-    if (!newUsername.trim() || !newPassword.trim()) {
+  const updateAdminCredentials = async (newUsername: string, newPassword: string): Promise<boolean> => {
+    if (!data) return false;
+    const u = newUsername.trim();
+    const p = newPassword.trim();
+    if (!u || !p) {
       toast.error('Username and password cannot be empty!');
       return false;
     }
-    const creds = { username: newUsername.trim(), password: newPassword.trim() };
-    localStorage.setItem(CUSTOM_CREDS_KEY, JSON.stringify(creds));
-    toast.success('Admin username and password updated successfully!');
+
+    const userHash = await createSaltedHash(u);
+    const passHash = await createSaltedHash(p);
+
+    const updated: PortfolioData = {
+      ...data,
+      adminUserHash: userHash,
+      adminPassHash: passHash,
+    };
+
+    localStorage.setItem(CUSTOM_CREDS_KEY, JSON.stringify({
+      username: u,
+      userHash,
+      passHash,
+    }));
+
+    await saveAndSync(updated);
+    toast.success('Admin credentials updated and synced to cloud with salted hashes!');
     return true;
   };
 
-  const resetAdminCredentials = () => {
+  const resetAdminCredentials = async () => {
+    if (!data) return;
     localStorage.removeItem(CUSTOM_CREDS_KEY);
+    const updated: PortfolioData = {
+      ...data,
+      adminUserHash: '',
+      adminPassHash: '',
+    };
+    await saveAndSync(updated);
     toast.info('Admin credentials reset to default / .env settings.');
   };
 
+  const createTempCredential = async (
+    username: string, 
+    password: string, 
+    durationHours: number,
+    permission: 'read' | 'edit' = 'read'
+  ): Promise<boolean> => {
+    if (!data) return false;
+    const u = username.trim();
+    const p = password.trim();
+    if (!u || !p) {
+      toast.error('Temporary username and password cannot be empty!');
+      return false;
+    }
+
+    // Enforce only one temporary pass can exist. Can generate another only after expire or delete.
+    if (data.tempCredential && Date.now() < data.tempCredential.expiresAt) {
+      toast.error('An active temporary pass already exists. You can generate a new pass only after it expires or is deleted.');
+      return false;
+    }
+
+    if (durationHours < 1 || durationHours > 720) {
+      toast.error('Validity must be between 1 hour and 30 days (720 hours)!');
+      return false;
+    }
+
+    const userHash = await createSaltedHash(u);
+    const passHash = await createSaltedHash(p);
+    const now = Date.now();
+    const expiresAt = now + durationHours * 3600 * 1000;
+
+    let durationLabel = `${durationHours}h`;
+    if (durationHours >= 24) {
+      const days = Math.round(durationHours / 24);
+      durationLabel = `${days} day${days > 1 ? 's' : ''}`;
+    }
+
+    // Cache plain credentials locally for the admin who generated it
+    try {
+      localStorage.setItem('portfolio_temp_plain_cache', JSON.stringify({
+        userHash,
+        passHash,
+        username: u,
+        password: p,
+      }));
+    } catch {}
+
+    const newTemp: TempCredential = {
+      id: `temp-${now}`,
+      userHash,
+      passHash,
+      createdAt: now,
+      expiresAt,
+      durationLabel,
+      permission,
+      plainUsername: u,
+      plainPassword: p,
+    };
+
+    const updated = { ...data, tempCredential: newTemp };
+    await saveAndSync(updated);
+    toast.success(`Temporary access pass created! [${permission === 'edit' ? 'Can Edit' : 'Read-Only'}, ${durationLabel}].`);
+    return true;
+  };
+
+  const updateTempPermission = async (permission: 'read' | 'edit'): Promise<boolean> => {
+    if (!data || !data.tempCredential) return false;
+    const updatedTemp: TempCredential = {
+      ...data.tempCredential,
+      permission,
+    };
+    const updated = { ...data, tempCredential: updatedTemp };
+    await saveAndSync(updated);
+    toast.success(`Temporary pass permission set to: ${permission === 'edit' ? 'Can Edit' : 'Read-Only'}`);
+    return true;
+  };
+
+  const deleteTempCredential = async () => {
+    if (!data) return;
+    try {
+      localStorage.removeItem('portfolio_temp_plain_cache');
+    } catch {}
+    const updated = { ...data, tempCredential: null };
+    await saveAndSync(updated);
+    toast.info('Temporary access pass deleted.');
+  };
+
+  const checkCanEdit = (): boolean => {
+    if (!canEdit) {
+      toast.error('Editing is disabled (Read-Only mode).');
+      return false;
+    }
+    return true;
+  };
+
   const updatePersonalInfo = (fields: Partial<PortfolioData>) => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const updated = { ...data, ...fields };
     saveAndSync(updated);
@@ -244,6 +659,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Resume CRUD
   const addResume = async (resume: ResumeItem) => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     let finalResume = { ...resume };
 
@@ -278,6 +694,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const deleteResume = async (id: string) => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const target = (data.resumes || []).find(r => r.id === id);
     if (target && target.fileData) {
@@ -305,6 +722,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const setPrimaryResume = (id: string) => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const list = (data.resumes || []).map(r => ({
       ...r,
@@ -316,6 +734,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Experience CRUD & Reorder
   const addExperience = (exp: ExperienceItem) => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const updated = { ...data, experiences: withOrder([exp, ...(data.experiences || [])]) };
     saveAndSync(updated);
@@ -323,6 +742,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const updateExperience = (index: number, exp: ExperienceItem) => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const list = [...(data.experiences || [])];
     list[index] = exp;
@@ -332,6 +752,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const deleteExperience = (index: number) => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const list = (data.experiences || []).filter((_, i) => i !== index);
     const updated = { ...data, experiences: withOrder(list) };
@@ -340,6 +761,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const moveExperience = (index: number, direction: 'up' | 'down') => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const list = moveArrayItem(data.experiences || [], index, direction);
     saveAndSync({ ...data, experiences: withOrder(list) });
@@ -347,6 +769,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const reorderExperiences = (fromIndex: number, toIndex: number) => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const list = reorderArray(data.experiences || [], fromIndex, toIndex);
     saveAndSync({ ...data, experiences: withOrder(list) });
@@ -355,6 +778,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Projects CRUD & Reorder
   const addProject = (proj: PortfolioData['projects'][0]) => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const updated = { ...data, projects: withOrder([proj, ...(data.projects || [])]) };
     saveAndSync(updated);
@@ -362,6 +786,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const updateProject = (index: number, proj: PortfolioData['projects'][0]) => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const list = [...(data.projects || [])];
     list[index] = proj;
@@ -371,6 +796,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const deleteProject = (index: number) => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const list = (data.projects || []).filter((_, i) => i !== index);
     const updated = { ...data, projects: withOrder(list) };
@@ -379,6 +805,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const moveProject = (index: number, direction: 'up' | 'down') => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const list = moveArrayItem(data.projects || [], index, direction);
     saveAndSync({ ...data, projects: withOrder(list) });
@@ -386,6 +813,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const reorderProjects = (fromIndex: number, toIndex: number) => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const list = reorderArray(data.projects || [], fromIndex, toIndex);
     saveAndSync({ ...data, projects: withOrder(list) });
@@ -394,6 +822,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Education CRUD & Reorder
   const addEducation = (edu: PortfolioData['educationList'][0]) => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const updated = { ...data, educationList: withOrder([edu, ...(data.educationList || [])]) };
     saveAndSync(updated);
@@ -401,6 +830,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const updateEducation = (index: number, edu: PortfolioData['educationList'][0]) => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const list = [...(data.educationList || [])];
     list[index] = edu;
@@ -410,6 +840,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const deleteEducation = (index: number) => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const list = (data.educationList || []).filter((_, i) => i !== index);
     const updated = { ...data, educationList: withOrder(list) };
@@ -418,6 +849,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const moveEducation = (index: number, direction: 'up' | 'down') => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const list = moveArrayItem(data.educationList || [], index, direction);
     saveAndSync({ ...data, educationList: withOrder(list) });
@@ -425,6 +857,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const reorderEducation = (fromIndex: number, toIndex: number) => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const list = reorderArray(data.educationList || [], fromIndex, toIndex);
     saveAndSync({ ...data, educationList: withOrder(list) });
@@ -433,6 +866,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Services CRUD & Reorder
   const addService = (srv: PortfolioData['servicesList'][0]) => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const updated = { ...data, servicesList: withOrder([srv, ...(data.servicesList || [])]) };
     saveAndSync(updated);
@@ -440,6 +874,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const updateService = (index: number, srv: PortfolioData['servicesList'][0]) => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const list = [...(data.servicesList || [])];
     list[index] = srv;
@@ -449,6 +884,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const deleteService = (index: number) => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const list = (data.servicesList || []).filter((_, i) => i !== index);
     const updated = { ...data, servicesList: withOrder(list) };
@@ -457,6 +893,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const moveService = (index: number, direction: 'up' | 'down') => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const list = moveArrayItem(data.servicesList || [], index, direction);
     saveAndSync({ ...data, servicesList: withOrder(list) });
@@ -464,6 +901,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const reorderServices = (fromIndex: number, toIndex: number) => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const list = reorderArray(data.servicesList || [], fromIndex, toIndex);
     saveAndSync({ ...data, servicesList: withOrder(list) });
@@ -472,6 +910,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Skills CRUD & Reorder
   const addSkillCategory = (sk: PortfolioData['skillsList'][0]) => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const updated = { ...data, skillsList: withOrder([...(data.skillsList || []), sk]) };
     saveAndSync(updated);
@@ -479,6 +918,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const updateSkillCategory = (index: number, sk: PortfolioData['skillsList'][0]) => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const list = [...(data.skillsList || [])];
     list[index] = sk;
@@ -488,6 +928,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const deleteSkillCategory = (index: number) => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const list = (data.skillsList || []).filter((_, i) => i !== index);
     const updated = { ...data, skillsList: withOrder(list) };
@@ -496,6 +937,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const moveSkillCategory = (index: number, direction: 'up' | 'down') => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const list = moveArrayItem(data.skillsList || [], index, direction);
     saveAndSync({ ...data, skillsList: withOrder(list) });
@@ -503,6 +945,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const reorderSkills = (fromIndex: number, toIndex: number) => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const list = reorderArray(data.skillsList || [], fromIndex, toIndex);
     saveAndSync({ ...data, skillsList: withOrder(list) });
@@ -511,6 +954,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Certifications CRUD & Reorder
   const addCertification = (cert: PortfolioData['certifications'][0]) => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const updated = { ...data, certifications: withOrder([cert, ...(data.certifications || [])]) };
     saveAndSync(updated);
@@ -518,6 +962,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const updateCertification = (index: number, cert: PortfolioData['certifications'][0]) => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const list = [...(data.certifications || [])];
     list[index] = cert;
@@ -527,6 +972,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const deleteCertification = (index: number) => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const list = (data.certifications || []).filter((_, i) => i !== index);
     const updated = { ...data, certifications: withOrder(list) };
@@ -535,6 +981,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const moveCertification = (index: number, direction: 'up' | 'down') => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const list = moveArrayItem(data.certifications || [], index, direction);
     saveAndSync({ ...data, certifications: withOrder(list) });
@@ -542,6 +989,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const reorderCertifications = (fromIndex: number, toIndex: number) => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const list = reorderArray(data.certifications || [], fromIndex, toIndex);
     saveAndSync({ ...data, certifications: withOrder(list) });
@@ -550,6 +998,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Stats CRUD & Reorder
   const updateStats = (stats: PortfolioData['statsList']) => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const updated = { ...data, statsList: withOrder(stats) };
     saveAndSync(updated);
@@ -557,6 +1006,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const moveStat = (index: number, direction: 'up' | 'down') => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const list = moveArrayItem(data.statsList || [], index, direction);
     saveAndSync({ ...data, statsList: withOrder(list) });
@@ -564,6 +1014,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const reorderStats = (fromIndex: number, toIndex: number) => {
+    if (!checkCanEdit()) return;
     if (!data) return;
     const list = reorderArray(data.statsList || [], fromIndex, toIndex);
     saveAndSync({ ...data, statsList: withOrder(list) });
@@ -571,6 +1022,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const resetToDefaults = async () => {
+    if (!checkCanEdit()) return;
     clearCSVFromStorage();
     if (supabase) {
       try {
@@ -624,6 +1076,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const importCSVContent = (csvText: string): boolean => {
+    if (!checkCanEdit()) return false;
     try {
       const parsed = parseCSVData(csvText);
       if (parsed && parsed.name) {
@@ -647,10 +1100,16 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         data,
         loading,
         isAuthenticated,
+        isTempUser,
+        tempPermission,
+        canEdit,
         login,
         logout,
         updateAdminCredentials,
         resetAdminCredentials,
+        createTempCredential,
+        updateTempPermission,
+        deleteTempCredential,
         updatePersonalInfo,
         addResume,
         deleteResume,

@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   ShieldCheck, Plus, Trash2, Edit2, Check, X, GripVertical, Upload, ExternalLink,
-  Briefcase, User, Code2, GraduationCap, Wrench, Sparkles, Award, BarChart3, Eye, EyeOff, Lock, AlertCircle,
-  FileText, Star, Download, KeyRound, Database, RotateCcw, FileSpreadsheet
+  Briefcase, User, Code2, GraduationCap, Wrench, Sparkles, Award, BarChart3, Eye, EyeOff, Lock, AlertCircle, AlertTriangle,
+  FileText, Star, Download, KeyRound, Database, RotateCcw, FileSpreadsheet, Clock, Copy, RefreshCw, UserPlus
 } from 'lucide-react';
 import { usePortfolio } from '@/context/PortfolioContext';
 import { ExperienceItem, PortfolioData, ResumeItem } from '@/lib/csvData';
@@ -16,9 +16,16 @@ export const AdminPage: React.FC = () => {
   const {
     data,
     isAuthenticated,
+    isTempUser,
+    tempPermission,
+    canEdit,
     login,
+    logout,
     updateAdminCredentials,
     resetAdminCredentials,
+    createTempCredential,
+    updateTempPermission,
+    deleteTempCredential,
     updatePersonalInfo,
     addResume,
     deleteResume,
@@ -54,8 +61,57 @@ export const AdminPage: React.FC = () => {
     resetToDefaults,
   } = usePortfolio();
 
-  const [activeTab, setActiveTab] = useState<'personal' | 'resumes' | 'projects' | 'education' | 'experience' | 'services' | 'skills' | 'certifications' | 'stats' | 'security'>('personal');
-  const [securitySubSection, setSecuritySubSection] = useState<'security' | 'backup'>('security');
+  type AdminTabId = 'personal' | 'resumes' | 'projects' | 'education' | 'experience' | 'services' | 'skills' | 'certifications' | 'stats' | 'security';
+  const validTabs: AdminTabId[] = ['personal', 'resumes', 'projects', 'education', 'experience', 'services', 'skills', 'certifications', 'stats', 'security'];
+
+  const [activeTab, setActiveTab] = useState<AdminTabId>(() => {
+    try {
+      const hash = window.location.hash.replace('#', '') as AdminTabId;
+      if (hash && validTabs.includes(hash)) return hash;
+      const saved = sessionStorage.getItem('portfolio_admin_active_tab') as AdminTabId | null;
+      if (saved && validTabs.includes(saved)) return saved;
+    } catch {}
+    return 'personal';
+  });
+
+  const [securitySubSection, setSecuritySubSection] = useState<'security' | 'temporary' | 'backup'>(() => {
+    try {
+      const saved = sessionStorage.getItem('portfolio_admin_sec_subsection') as any;
+      if (saved && ['security', 'temporary', 'backup'].includes(saved)) return saved;
+    } catch {}
+    return 'security';
+  });
+
+  // Persist active tab changes to sessionStorage and URL hash
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('portfolio_admin_active_tab', activeTab);
+      window.history.replaceState(null, '', `#${activeTab}`);
+    } catch {}
+  }, [activeTab]);
+
+  // Persist security sub-section changes to sessionStorage
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('portfolio_admin_sec_subsection', securitySubSection);
+    } catch {}
+  }, [securitySubSection]);
+
+  // Prevent temporary user from accessing security tab
+  useEffect(() => {
+    if (isTempUser && activeTab === 'security') {
+      setActiveTab('personal');
+    }
+  }, [isTempUser, activeTab]);
+
+  // Temporary Security State
+  const [tempUsername, setTempUsername] = useState('');
+  const [tempPassword, setTempPassword] = useState('');
+  const [tempDurationHours, setTempDurationHours] = useState(24);
+  const [tempPermissionSelect, setTempPermissionSelect] = useState<'read' | 'edit'>('read');
+  const [showTempPass, setShowTempPass] = useState(false);
+  const [tempError, setTempError] = useState('');
+  const [copiedTempId, setCopiedTempId] = useState<string | null>(null);
 
   // Form visibility & Auto-scroll Reference
   const [showForm, setShowForm] = useState(false);
@@ -70,18 +126,80 @@ export const AdminPage: React.FC = () => {
   const [showAuthPassword, setShowAuthPassword] = useState(false);
   const [authError, setAuthError] = useState('');
 
+  // Reset authentication form inputs whenever logged out
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setAuthUsername('');
+      setAuthPassword('');
+      setAuthError('');
+      setShowAuthPassword(false);
+    }
+  }, [isAuthenticated]);
+
+  // Center Delete Confirmation Dialog State (for all admin sections)
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    itemName?: string;
+    onConfirm: () => void | Promise<void>;
+  } | null>(null);
+
+  const confirmDelete = (
+    title: string,
+    message: string,
+    onConfirm: () => void | Promise<void>,
+    itemName?: string
+  ) => {
+    setDeleteDialog({
+      isOpen: true,
+      title,
+      message,
+      itemName,
+      onConfirm,
+    });
+  };
+
+  const handleExecuteDelete = async () => {
+    if (deleteDialog?.onConfirm) {
+      await deleteDialog.onConfirm();
+    }
+    setDeleteDialog(null);
+  };
+
+  // Close confirmation dialog on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && deleteDialog?.isOpen) {
+        setDeleteDialog(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [deleteDialog?.isOpen]);
+
   // Security Credentials Management State
-  const [secUsername, setSecUsername] = useState('');
+  const [secUsername, setSecUsername] = useState('premkumar');
   const [secPassword, setSecPassword] = useState('');
   const [secConfirmPassword, setSecConfirmPassword] = useState('');
   const [showSecPass, setShowSecPass] = useState(false);
   const [secError, setSecError] = useState('');
 
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('portfolio_admin_custom_creds');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.username) setSecUsername(parsed.username);
+      }
+    } catch {}
+  }, []);
+
   // Resume Upload Form State
   const [resumeTitle, setResumeTitle] = useState('');
   const [resumeFileContent, setResumeFileContent] = useState('');
   const [resumeFileName, setResumeFileName] = useState('');
-  const [isResumePrimary, setIsResumePrimary] = useState(false);
+  const [isResumePrimary, setIsResumePrimary] = useState(true);
 
   // Personal Info Form State
   const [personalForm, setPersonalForm] = useState({
@@ -191,12 +309,62 @@ export const AdminPage: React.FC = () => {
   };
 
   // Handle Login Submission
-  const handleAuthSubmit = (e: React.FormEvent) => {
+  const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
-    const ok = login(authUsername, authPassword);
-    if (!ok) {
-      setAuthError('Invalid administrator credentials.');
+    const ok = await login(authUsername, authPassword);
+    if (ok) {
+      setAuthUsername('');
+      setAuthPassword('');
+      setAuthError('');
+      setShowAuthPassword(false);
+    } else {
+      setAuthError('Invalid administrator credentials or expired temporary pass.');
+    }
+  };
+
+  // Handle Logout & Explicitly Reset Login Form Inputs
+  const handleLogout = () => {
+    setAuthUsername('');
+    setAuthPassword('');
+    setAuthError('');
+    setShowAuthPassword(false);
+    logout();
+  };
+
+  const generateRandomTempCreds = () => {
+    const randomUser = `temp_${Math.random().toString(36).substring(2, 7)}`;
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#%';
+    let randomPass = '';
+    for (let i = 0; i < 10; i++) {
+      randomPass += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setTempUsername(randomUser);
+    setTempPassword(randomPass);
+    setShowTempPass(true);
+  };
+
+  const handleCreateTempPass = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTempError('');
+    if (data?.tempCredential && Date.now() <= data.tempCredential.expiresAt) {
+      setTempError('An active temporary pass already exists. You can generate a new pass only after it expires or is deleted.');
+      return;
+    }
+    if (!tempUsername.trim() || !tempPassword.trim()) {
+      setTempError('Temporary username and password cannot be empty.');
+      return;
+    }
+    if (tempDurationHours < 1 || tempDurationHours > 720) {
+      setTempError('Validity must be between 1 hour and 30 days (720 hours).');
+      return;
+    }
+    const ok = await createTempCredential(tempUsername, tempPassword, tempDurationHours, tempPermissionSelect);
+    if (ok) {
+      setTempUsername('');
+      setTempPassword('');
+      setTempPermissionSelect('read');
+      setShowTempPass(false);
     }
   };
 
@@ -303,98 +471,137 @@ export const AdminPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#050816] text-white flex flex-col selection:bg-blue-500/30 selection:text-blue-200">
-      {/* Top Header Bar */}
-      <header className="sticky top-0 z-40 bg-[#080c1e]/95 backdrop-blur-xl border-b border-white/10 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 p-[1px]">
-            <div className="w-full h-full bg-[#080c1e] rounded-[11px] flex items-center justify-center">
-              <ShieldCheck className="w-5 h-5 text-blue-400" />
+      {/* Fixed Top Header Bar & Tabs Container */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-[#080c1e]/95 backdrop-blur-xl border-b border-white/10 shadow-lg shadow-black/40">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 p-[1px]">
+              <div className="w-full h-full bg-[#080c1e] rounded-[11px] flex items-center justify-center">
+                <ShieldCheck className="w-5 h-5 text-blue-400" />
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-extrabold text-white">Admin Panel</h1>
+              </div>
+              <p className="text-xs text-gray-400">
+                {isTempUser ? (canEdit ? 'Editor Mode' : 'Read-Only Mode') : 'Manage & Update Portfolio'}
+              </p>
             </div>
           </div>
-          <div>
-            <h1 className="text-lg font-extrabold text-white">Admin Panel</h1>
-            <p className="text-xs text-gray-400">Manage & Update Portfolio</p>
+
+          {/* Desktop Tab Navigation */}
+          <div className="hidden lg:flex items-center gap-1.5 bg-[#050816] p-1.5 rounded-2xl border border-white/10">
+            {[
+              { id: 'personal', label: 'Personal & Bio', icon: User },
+              { id: 'resumes', label: 'Resumes', icon: FileText },
+              { id: 'projects', label: 'Projects', icon: Code2 },
+              { id: 'education', label: 'Education', icon: GraduationCap },
+              { id: 'experience', label: 'Work Experience', icon: Briefcase },
+              { id: 'services', label: 'Services', icon: Wrench },
+              { id: 'skills', label: 'Skills', icon: Sparkles },
+              { id: 'certifications', label: 'Certifications', icon: Award },
+              { id: 'stats', label: 'Stats', icon: BarChart3 },
+              ...(!isTempUser ? [{ id: 'security', label: 'Security', icon: KeyRound }] : []),
+            ].map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveTab(tab.id as any);
+                    setShowForm(false);
+                  }}
+                  className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                    isActive 
+                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' 
+                      : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Action Controls: Logout and Close */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleLogout}
+              className="p-2.5 rounded-xl bg-white/5 hover:bg-red-500/15 border border-white/10 hover:border-red-500/30 text-gray-300 hover:text-red-300 transition-all flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
+              title="Log out from Admin Panel"
+            >
+              <Lock className="w-4 h-4" />
+              <span className="hidden sm:inline">Logout</span>
+            </button>
+
+            <button
+              onClick={() => window.close()}
+              className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white transition-all flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
+              title="Close Tab"
+            >
+              <X className="w-4 h-4" />
+              <span>Close</span>
+            </button>
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="hidden lg:flex items-center gap-1.5 bg-[#050816] p-1.5 rounded-2xl border border-white/10">
+        {/* Mobile Tab Select (inside fixed header so tabs remain fixed on mobile too) */}
+        <div className="lg:hidden px-4 py-2.5 bg-[#050816]/95 border-t border-white/5 flex overflow-x-auto gap-2 scrollbar-none">
           {[
-            { id: 'personal', label: 'Personal & Bio', icon: User },
-            { id: 'resumes', label: 'Resumes', icon: FileText },
-            { id: 'projects', label: 'Projects', icon: Code2 },
-            { id: 'education', label: 'Education', icon: GraduationCap },
-            { id: 'experience', label: 'Work Experience', icon: Briefcase },
-            { id: 'services', label: 'Services', icon: Wrench },
-            { id: 'skills', label: 'Skills', icon: Sparkles },
-            { id: 'certifications', label: 'Certifications', icon: Award },
-            { id: 'stats', label: 'Stats', icon: BarChart3 },
-            { id: 'security', label: 'Security', icon: KeyRound },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setActiveTab(tab.id as any);
-                  setShowForm(false);
-                }}
-                className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                  isActive 
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' 
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
+            { id: 'personal', label: 'Personal & Bio' },
+            { id: 'resumes', label: 'Resumes' },
+            { id: 'projects', label: 'Projects' },
+            { id: 'education', label: 'Education' },
+            { id: 'experience', label: 'Work Experience' },
+            { id: 'services', label: 'Services' },
+            { id: 'skills', label: 'Skills' },
+            { id: 'certifications', label: 'Certifications' },
+            { id: 'stats', label: 'Stats' },
+            ...(!isTempUser ? [{ id: 'security', label: 'Security' }] : []),
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setActiveTab(tab.id as any);
+                setShowForm(false);
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                activeTab === tab.id ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30' : 'text-gray-400 bg-white/5 hover:text-white'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
-
-        {/* Close Tab */}
-        <button
-          onClick={() => window.close()}
-          className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white transition-all flex items-center gap-1.5 text-xs font-semibold"
-          title="Close Tab"
-        >
-          <X className="w-4 h-4" />
-          <span>Close</span>
-        </button>
       </header>
 
-      {/* Mobile Tab Select */}
-      <div className="lg:hidden p-4 bg-[#050816] border-b border-white/10 flex overflow-x-auto gap-2">
-        {[
-          { id: 'personal', label: 'Personal & Bio' },
-          { id: 'resumes', label: 'Resumes' },
-          { id: 'projects', label: 'Projects' },
-          { id: 'education', label: 'Education' },
-          { id: 'experience', label: 'Work Experience' },
-          { id: 'services', label: 'Services' },
-          { id: 'skills', label: 'Skills' },
-          { id: 'certifications', label: 'Certifications' },
-          { id: 'stats', label: 'Stats' },
-          { id: 'security', label: 'Security' },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => {
-              setActiveTab(tab.id as any);
-              setShowForm(false);
-            }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap ${
-              activeTab === tab.id ? 'bg-blue-600 text-white' : 'text-gray-400 bg-white/5'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {/* Main Content Area - padded so content starts right below fixed header on mobile and desktop */}
+      <main className="max-w-6xl mx-auto w-full p-4 sm:p-8 flex-1 space-y-6 pt-32 lg:pt-24">
 
-      {/* Main Content Area */}
-      <main className="max-w-6xl mx-auto w-full p-4 sm:p-8 flex-1 space-y-6">
+        {/* Access Level Notice */}
+        {isTempUser && (
+          <div className={`py-2 px-3.5 rounded-xl border flex items-center gap-2.5 text-xs ${
+            canEdit 
+              ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300'
+              : 'bg-amber-500/10 border-amber-500/25 text-amber-300'
+          }`}>
+            {canEdit ? <Edit2 className="w-3.5 h-3.5 shrink-0 text-emerald-400" /> : <Eye className="w-3.5 h-3.5 shrink-0 text-amber-400" />}
+            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+              canEdit 
+                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' 
+                : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+            }`}>
+              {canEdit ? 'Can Edit' : 'Read-Only'}
+            </span>
+            <span className="text-gray-400">•</span>
+            <span className="text-gray-300">
+              {canEdit ? 'You can modify portfolio content.' : 'Content editing is disabled.'}
+            </span>
+          </div>
+        )}
 
         {/* 1. PERSONAL & BIO TAB */}
         {activeTab === 'personal' && (
@@ -406,7 +613,7 @@ export const AdminPage: React.FC = () => {
               </h2>
             </div>
 
-            <div className="p-6 rounded-2xl bg-white/5 border border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <fieldset disabled={!canEdit} className="p-6 rounded-2xl bg-white/5 border border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs disabled:opacity-80">
               <div>
                 <label className="block text-gray-300 mb-1 font-semibold">Full Name</label>
                 <input
@@ -516,7 +723,7 @@ export const AdminPage: React.FC = () => {
                   className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white"
                 />
               </div>
-            </div>
+            </fieldset>
 
             <div className="flex items-center justify-between pt-2">
               {personalSaved ? (
@@ -527,13 +734,15 @@ export const AdminPage: React.FC = () => {
               ) : (
                 <span />
               )}
-              <button
-                type="submit"
-                className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-blue-500/20 cursor-pointer transition-all"
-              >
-                <Check className="w-4 h-4" />
-                <span>Confirm & Save Changes</span>
-              </button>
+              {canEdit && (
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-blue-500/20 cursor-pointer transition-all"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Confirm & Save Changes</span>
+                </button>
+              )}
             </div>
           </form>
         )}
@@ -550,7 +759,7 @@ export const AdminPage: React.FC = () => {
                 <p className="text-xs text-gray-400 mt-1">Upload multiple resume versions and mark the active primary resume visitors will download.</p>
               </div>
 
-              {!showForm ? (
+              {canEdit && (!showForm ? (
                 <button
                   onClick={() => {
                     setResumeTitle('');
@@ -573,7 +782,7 @@ export const AdminPage: React.FC = () => {
                   <X className="w-4 h-4" />
                   <span>Hide Form</span>
                 </button>
-              )}
+              ))}
             </div>
 
             {/* Resume Upload Form */}
@@ -632,6 +841,10 @@ export const AdminPage: React.FC = () => {
                         isPrimary: isResumePrimary,
                       };
                       addResume(newResume);
+                      setResumeTitle('');
+                      setResumeFileContent('');
+                      setResumeFileName('');
+                      setIsResumePrimary(true);
                       setShowForm(false);
                     }}
                     className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5"
@@ -691,22 +904,24 @@ export const AdminPage: React.FC = () => {
                       </a>
 
                       {/* Set Primary Resume Icon Button */}
-                      {res.isPrimary ? (
-                        <button
-                          disabled
-                          className="p-2.5 rounded-xl bg-blue-600 border border-blue-400 text-white cursor-default shadow-md shadow-blue-600/30 opacity-90 flex items-center justify-center"
-                          title="Primary Resume Active"
-                        >
-                          <Star className="w-4 h-4 fill-white text-white" />
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => setPrimaryResume(res.id)}
-                          className="p-2.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/40 text-blue-300 transition-all flex items-center justify-center"
-                          title="Set as Primary Resume"
-                        >
-                          <Star className="w-4 h-4" />
-                        </button>
+                      {canEdit && (
+                        res.isPrimary ? (
+                          <button
+                            disabled
+                            className="p-2.5 rounded-xl bg-blue-600 border border-blue-400 text-white cursor-default shadow-md shadow-blue-600/30 opacity-90 flex items-center justify-center"
+                            title="Primary Resume Active"
+                          >
+                            <Star className="w-4 h-4 fill-white text-white" />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setPrimaryResume(res.id)}
+                            className="p-2.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/40 text-blue-300 transition-all flex items-center justify-center"
+                            title="Set as Primary Resume"
+                          >
+                            <Star className="w-4 h-4" />
+                          </button>
+                        )
                       )}
 
                       {/* Download Resume Icon Button */}
@@ -720,13 +935,21 @@ export const AdminPage: React.FC = () => {
                       </a>
 
                       {/* Delete Resume Icon Button */}
-                      <button
-                        onClick={() => deleteResume(res.id)}
-                        className="p-2.5 rounded-xl bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-300 transition-all flex items-center justify-center"
-                        title="Delete Resume"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {canEdit && (
+                        <button
+                          type="button"
+                          onClick={() => confirmDelete(
+                            'Delete Resume',
+                            'Are you sure you want to delete this resume? This action cannot be undone.',
+                            () => deleteResume(res.id),
+                            res.name
+                          )}
+                          className="p-2.5 rounded-xl bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-300 transition-all flex items-center justify-center cursor-pointer"
+                          title="Delete Resume"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))
@@ -747,7 +970,7 @@ export const AdminPage: React.FC = () => {
                 <p className="text-xs text-gray-400 mt-1">Drag cards using the 3-line handle to rearrange display order.</p>
               </div>
 
-              {!showForm ? (
+              {canEdit && (!showForm ? (
                 <button
                   onClick={() => {
                     setEditingProjIdx(null);
@@ -768,7 +991,7 @@ export const AdminPage: React.FC = () => {
                   <X className="w-4 h-4" />
                   <span>Hide Form</span>
                 </button>
-              )}
+              ))}
             </div>
 
             {/* Form Section with Auto Scroll Ref */}
@@ -892,23 +1115,26 @@ export const AdminPage: React.FC = () => {
               {(data.projects || []).map((proj, idx) => (
                 <div
                   key={idx}
-                  draggable
-                  onDragStart={(e) => { setDraggedIdx(idx); e.dataTransfer.effectAllowed = 'move'; }}
-                  onDragOver={(e) => e.preventDefault()}
+                  draggable={canEdit}
+                  onDragStart={(e) => { if (!canEdit) return; setDraggedIdx(idx); e.dataTransfer.effectAllowed = 'move'; }}
+                  onDragOver={(e) => { if (canEdit) e.preventDefault(); }}
                   onDrop={() => {
+                    if (!canEdit) return;
                     if (draggedIdx !== null && draggedIdx !== idx) {
                       reorderProjects(draggedIdx, idx);
                     }
                     setDraggedIdx(null);
                   }}
-                  className={`p-4 rounded-xl border transition-all flex items-center justify-between gap-4 text-xs cursor-grab active:cursor-grabbing ${
+                  className={`p-4 rounded-xl border transition-all flex items-center justify-between gap-4 text-xs ${canEdit ? 'cursor-grab active:cursor-grabbing' : ''} ${
                     draggedIdx === idx ? 'bg-blue-600/20 border-blue-500 opacity-60' : 'bg-white/5 border-white/10 hover:border-white/20'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="text-gray-400 hover:text-white transition-colors p-1" title="Drag up/down to reorder">
-                      <GripVertical className="w-5 h-5" />
-                    </div>
+                    {canEdit && (
+                      <div className="text-gray-400 hover:text-white transition-colors p-1" title="Drag up/down to reorder">
+                        <GripVertical className="w-5 h-5" />
+                      </div>
+                    )}
 
                     <div>
                       <span className="font-bold text-white text-sm">{proj.title}</span>
@@ -921,27 +1147,35 @@ export const AdminPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      onClick={() => {
-                        setEditingProjIdx(idx);
-                        setProjForm({ ...proj, techInput: proj.tech ? proj.tech.join(', ') : '' });
-                        setShowForm(true);
-                        scrollToForm();
-                      }}
-                      className="p-2 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 text-blue-300"
-                      title="Edit & Auto Scroll to Form"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => deleteProject(idx)}
-                      className="p-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                  {canEdit && (
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={() => {
+                          setEditingProjIdx(idx);
+                          setProjForm({ ...proj, techInput: proj.tech ? proj.tech.join(', ') : '' });
+                          setShowForm(true);
+                          scrollToForm();
+                        }}
+                        className="p-2 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 text-blue-300"
+                        title="Edit & Auto Scroll to Form"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => confirmDelete(
+                          'Delete Project',
+                          'Are you sure you want to delete this project? This action cannot be undone.',
+                          () => deleteProject(idx),
+                          proj.title
+                        )}
+                        className="p-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 cursor-pointer transition-all"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -959,7 +1193,7 @@ export const AdminPage: React.FC = () => {
                 </h2>
               </div>
 
-              {!showForm ? (
+              {canEdit && (!showForm ? (
                 <button
                   onClick={() => {
                     setEditingEduIdx(null);
@@ -977,7 +1211,7 @@ export const AdminPage: React.FC = () => {
                   <X className="w-4 h-4" />
                   <span>Hide Form</span>
                 </button>
-              )}
+              ))}
             </div>
 
             {showForm && (
@@ -1061,23 +1295,26 @@ export const AdminPage: React.FC = () => {
               {(data.educationList || []).map((edu, idx) => (
                 <div
                   key={idx}
-                  draggable
-                  onDragStart={(e) => { setDraggedIdx(idx); e.dataTransfer.effectAllowed = 'move'; }}
-                  onDragOver={(e) => e.preventDefault()}
+                  draggable={canEdit}
+                  onDragStart={(e) => { if (!canEdit) return; setDraggedIdx(idx); e.dataTransfer.effectAllowed = 'move'; }}
+                  onDragOver={(e) => { if (canEdit) e.preventDefault(); }}
                   onDrop={() => {
+                    if (!canEdit) return;
                     if (draggedIdx !== null && draggedIdx !== idx) {
                       reorderEducation(draggedIdx, idx);
                     }
                     setDraggedIdx(null);
                   }}
-                  className={`p-4 rounded-xl border transition-all flex items-center justify-between gap-4 text-xs cursor-grab active:cursor-grabbing ${
+                  className={`p-4 rounded-xl border transition-all flex items-center justify-between gap-4 text-xs ${canEdit ? 'cursor-grab active:cursor-grabbing' : ''} ${
                     draggedIdx === idx ? 'bg-blue-600/20 border-blue-500 opacity-60' : 'bg-white/5 border-white/10 hover:border-white/20'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="text-gray-400 hover:text-white transition-colors p-1" title="Drag to reorder">
-                      <GripVertical className="w-5 h-5" />
-                    </div>
+                    {canEdit && (
+                      <div className="text-gray-400 hover:text-white transition-colors p-1" title="Drag to reorder">
+                        <GripVertical className="w-5 h-5" />
+                      </div>
+                    )}
                     <div>
                       <div className="font-bold text-white text-sm">{edu.degree}</div>
                       <div className="text-gray-400">{edu.institution} • {edu.period}</div>
@@ -1086,10 +1323,24 @@ export const AdminPage: React.FC = () => {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => { setEditingEduIdx(idx); setEduForm(edu); setShowForm(true); scrollToForm(); }} className="p-2 rounded-xl bg-blue-500/20 text-blue-300"><Edit2 className="w-4 h-4" /></button>
-                    <button onClick={() => deleteEducation(idx)} className="p-2 rounded-xl bg-red-500/20 text-red-300"><Trash2 className="w-4 h-4" /></button>
-                  </div>
+                  {canEdit && (
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => { setEditingEduIdx(idx); setEduForm(edu); setShowForm(true); scrollToForm(); }} className="p-2 rounded-xl bg-blue-500/20 text-blue-300"><Edit2 className="w-4 h-4" /></button>
+                      <button
+                        type="button"
+                        onClick={() => confirmDelete(
+                          'Delete Education',
+                          'Are you sure you want to delete this education entry? This action cannot be undone.',
+                          () => deleteEducation(idx),
+                          edu.institution ? `${edu.degree} - ${edu.institution}` : edu.degree
+                        )}
+                        className="p-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 cursor-pointer transition-all"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -1108,7 +1359,7 @@ export const AdminPage: React.FC = () => {
                 <p className="text-xs text-gray-400 mt-1">Drag three-line handles to rearrange experiences.</p>
               </div>
 
-              {!showForm ? (
+              {canEdit && (!showForm ? (
                 <button
                   onClick={() => {
                     setEditingExpIdx(null);
@@ -1129,7 +1380,7 @@ export const AdminPage: React.FC = () => {
                   <X className="w-4 h-4" />
                   <span>Hide Form</span>
                 </button>
-              )}
+              ))}
             </div>
 
             {/* Form Section */}
@@ -1239,23 +1490,26 @@ export const AdminPage: React.FC = () => {
                 data.experiences.map((exp, idx) => (
                   <div
                     key={idx}
-                    draggable
-                    onDragStart={(e) => { setDraggedIdx(idx); e.dataTransfer.effectAllowed = 'move'; }}
-                    onDragOver={(e) => e.preventDefault()}
+                    draggable={canEdit}
+                    onDragStart={(e) => { if (!canEdit) return; setDraggedIdx(idx); e.dataTransfer.effectAllowed = 'move'; }}
+                    onDragOver={(e) => { if (canEdit) e.preventDefault(); }}
                     onDrop={() => {
+                      if (!canEdit) return;
                       if (draggedIdx !== null && draggedIdx !== idx) {
                         reorderExperiences(draggedIdx, idx);
                       }
                       setDraggedIdx(null);
                     }}
-                    className={`p-4 rounded-xl border transition-all flex items-center justify-between gap-4 cursor-grab active:cursor-grabbing ${
+                    className={`p-4 rounded-xl border transition-all flex items-center justify-between gap-4 ${canEdit ? 'cursor-grab active:cursor-grabbing' : ''} ${
                       draggedIdx === idx ? 'bg-blue-600/20 border-blue-500 opacity-60' : 'bg-white/5 border-white/10 hover:border-white/20'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="text-gray-400 hover:text-white transition-colors p-1" title="Drag to reorder">
-                        <GripVertical className="w-5 h-5" />
-                      </div>
+                      {canEdit && (
+                        <div className="text-gray-400 hover:text-white transition-colors p-1" title="Drag to reorder">
+                          <GripVertical className="w-5 h-5" />
+                        </div>
+                      )}
 
                       <div>
                         <div className="font-bold text-white text-sm flex items-center gap-2">
@@ -1270,27 +1524,35 @@ export const AdminPage: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={() => {
-                          setEditingExpIdx(idx);
-                          setExpForm({ ...exp, tagsInput: exp.tags ? exp.tags.join(', ') : '' });
-                          setShowForm(true);
-                          scrollToForm();
-                        }}
-                        className="p-2 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 text-blue-300"
-                        title="Edit & Scroll Up"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => deleteExperience(idx)}
-                        className="p-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                    {canEdit && (
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => {
+                            setEditingExpIdx(idx);
+                            setExpForm({ ...exp, tagsInput: exp.tags ? exp.tags.join(', ') : '' });
+                            setShowForm(true);
+                            scrollToForm();
+                          }}
+                          className="p-2 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 text-blue-300"
+                          title="Edit & Scroll Up"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => confirmDelete(
+                            'Delete Work Experience',
+                            'Are you sure you want to delete this work experience entry? This action cannot be undone.',
+                            () => deleteExperience(idx),
+                            exp.company ? `${exp.role} at ${exp.company}` : exp.role
+                          )}
+                          className="p-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 cursor-pointer transition-all"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))
               )}
@@ -1307,7 +1569,7 @@ export const AdminPage: React.FC = () => {
                 <span>Services Offered</span>
               </h2>
 
-              {!showForm ? (
+              {canEdit && (!showForm ? (
                 <button onClick={() => { setEditingSrvIdx(null); setSrvForm({ title: '', desc: '', tech: [], techInput: '' }); setShowForm(true); scrollToForm(); }} className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5">
                   <Plus className="w-4 h-4" />
                   <span>Add Service</span>
@@ -1317,7 +1579,7 @@ export const AdminPage: React.FC = () => {
                   <X className="w-4 h-4" />
                   <span>Hide Form</span>
                 </button>
-              )}
+              ))}
             </div>
 
             {showForm && (
@@ -1356,32 +1618,49 @@ export const AdminPage: React.FC = () => {
               {(data.servicesList || []).map((srv, idx) => (
                 <div
                   key={idx}
-                  draggable
-                  onDragStart={(e) => { setDraggedIdx(idx); e.dataTransfer.effectAllowed = 'move'; }}
-                  onDragOver={(e) => e.preventDefault()}
+                  draggable={canEdit}
+                  onDragStart={(e) => { if (!canEdit) return; setDraggedIdx(idx); e.dataTransfer.effectAllowed = 'move'; }}
+                  onDragOver={(e) => { if (canEdit) e.preventDefault(); }}
                   onDrop={() => {
+                    if (!canEdit) return;
                     if (draggedIdx !== null && draggedIdx !== idx) {
                       reorderServices(draggedIdx, idx);
                     }
                     setDraggedIdx(null);
                   }}
-                  className={`p-4 rounded-xl border transition-all flex items-center justify-between text-xs cursor-grab active:cursor-grabbing ${
+                  className={`p-4 rounded-xl border transition-all flex items-center justify-between text-xs ${canEdit ? 'cursor-grab active:cursor-grabbing' : ''} ${
                     draggedIdx === idx ? 'bg-blue-600/20 border-blue-500 opacity-60' : 'bg-white/5 border-white/10 hover:border-white/20'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="text-gray-400 hover:text-white transition-colors p-1" title="Drag to reorder">
-                      <GripVertical className="w-5 h-5" />
-                    </div>
+                    {canEdit && (
+                      <div className="text-gray-400 hover:text-white transition-colors p-1" title="Drag to reorder">
+                        <GripVertical className="w-5 h-5" />
+                      </div>
+                    )}
                     <div>
                       <div className="font-bold text-white text-sm">{srv.title}</div>
                       <div className="text-gray-400">{srv.desc}</div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => { setEditingSrvIdx(idx); setSrvForm({ ...srv, techInput: srv.tech ? srv.tech.join(', ') : '' }); setShowForm(true); scrollToForm(); }} className="p-2 rounded-xl bg-blue-500/20 text-blue-300"><Edit2 className="w-4 h-4" /></button>
-                    <button onClick={() => deleteService(idx)} className="p-2 rounded-xl bg-red-500/20 text-red-300"><Trash2 className="w-4 h-4" /></button>
-                  </div>
+                  {canEdit && (
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => { setEditingSrvIdx(idx); setSrvForm({ ...srv, techInput: srv.tech ? srv.tech.join(', ') : '' }); setShowForm(true); scrollToForm(); }} className="p-2 rounded-xl bg-blue-500/20 text-blue-300"><Edit2 className="w-4 h-4" /></button>
+                      <button
+                        type="button"
+                        onClick={() => confirmDelete(
+                          'Delete Service',
+                          'Are you sure you want to delete this service? This action cannot be undone.',
+                          () => deleteService(idx),
+                          srv.title
+                        )}
+                        className="p-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 cursor-pointer transition-all"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -1397,7 +1676,7 @@ export const AdminPage: React.FC = () => {
                 <span>Technical Skills Categories</span>
               </h2>
 
-              {!showForm ? (
+              {canEdit && (!showForm ? (
                 <button onClick={() => { setEditingSkillIdx(null); setSkillForm({ category: '', skills: [], skillsInput: '' }); setShowForm(true); scrollToForm(); }} className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5">
                   <Plus className="w-4 h-4" />
                   <span>Add Skill Category</span>
@@ -1407,7 +1686,7 @@ export const AdminPage: React.FC = () => {
                   <X className="w-4 h-4" />
                   <span>Hide Form</span>
                 </button>
-              )}
+              ))}
             </div>
 
             {showForm && (
@@ -1442,32 +1721,49 @@ export const AdminPage: React.FC = () => {
               {(data.skillsList || []).map((sk, idx) => (
                 <div
                   key={idx}
-                  draggable
-                  onDragStart={(e) => { setDraggedIdx(idx); e.dataTransfer.effectAllowed = 'move'; }}
-                  onDragOver={(e) => e.preventDefault()}
+                  draggable={canEdit}
+                  onDragStart={(e) => { if (!canEdit) return; setDraggedIdx(idx); e.dataTransfer.effectAllowed = 'move'; }}
+                  onDragOver={(e) => { if (canEdit) e.preventDefault(); }}
                   onDrop={() => {
+                    if (!canEdit) return;
                     if (draggedIdx !== null && draggedIdx !== idx) {
                       reorderSkills(draggedIdx, idx);
                     }
                     setDraggedIdx(null);
                   }}
-                  className={`p-4 rounded-xl border transition-all flex items-center justify-between text-xs cursor-grab active:cursor-grabbing ${
+                  className={`p-4 rounded-xl border transition-all flex items-center justify-between text-xs ${canEdit ? 'cursor-grab active:cursor-grabbing' : ''} ${
                     draggedIdx === idx ? 'bg-blue-600/20 border-blue-500 opacity-60' : 'bg-white/5 border-white/10 hover:border-white/20'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="text-gray-400 hover:text-white transition-colors p-1" title="Drag to reorder">
-                      <GripVertical className="w-5 h-5" />
-                    </div>
+                    {canEdit && (
+                      <div className="text-gray-400 hover:text-white transition-colors p-1" title="Drag to reorder">
+                        <GripVertical className="w-5 h-5" />
+                      </div>
+                    )}
                     <div>
                       <div className="font-bold text-white text-sm">{sk.category}</div>
                       <div className="text-gray-400 mt-0.5">{sk.skills.join(', ')}</div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => { setEditingSkillIdx(idx); setSkillForm({ ...sk, skillsInput: sk.skills ? sk.skills.join(', ') : '' }); setShowForm(true); scrollToForm(); }} className="p-2 rounded-xl bg-blue-500/20 text-blue-300"><Edit2 className="w-4 h-4" /></button>
-                    <button onClick={() => deleteSkillCategory(idx)} className="p-2 rounded-xl bg-red-500/20 text-red-300"><Trash2 className="w-4 h-4" /></button>
-                  </div>
+                  {canEdit && (
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => { setEditingSkillIdx(idx); setSkillForm({ ...sk, skillsInput: sk.skills ? sk.skills.join(', ') : '' }); setShowForm(true); scrollToForm(); }} className="p-2 rounded-xl bg-blue-500/20 text-blue-300"><Edit2 className="w-4 h-4" /></button>
+                      <button
+                        type="button"
+                        onClick={() => confirmDelete(
+                          'Delete Skill Category',
+                          'Are you sure you want to delete this skill category and all its skills? This action cannot be undone.',
+                          () => deleteSkillCategory(idx),
+                          sk.category
+                        )}
+                        className="p-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 cursor-pointer transition-all"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -1483,7 +1779,7 @@ export const AdminPage: React.FC = () => {
                 <span>Certifications & Achievements</span>
               </h2>
 
-              {!showForm ? (
+              {canEdit && (!showForm ? (
                 <button onClick={() => { setEditingCertIdx(null); setCertForm({ title: '', provider: '', date: '', certificateId: '', link: '', level: 'Professional' }); setShowForm(true); scrollToForm(); }} className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5">
                   <Plus className="w-4 h-4" />
                   <span>Add Certification</span>
@@ -1493,7 +1789,7 @@ export const AdminPage: React.FC = () => {
                   <X className="w-4 h-4" />
                   <span>Hide Form</span>
                 </button>
-              )}
+              ))}
             </div>
 
             {showForm && (
@@ -1544,23 +1840,26 @@ export const AdminPage: React.FC = () => {
               {(data.certifications || []).map((cert, idx) => (
                 <div
                   key={idx}
-                  draggable
-                  onDragStart={(e) => { setDraggedIdx(idx); e.dataTransfer.effectAllowed = 'move'; }}
-                  onDragOver={(e) => e.preventDefault()}
+                  draggable={canEdit}
+                  onDragStart={(e) => { if (!canEdit) return; setDraggedIdx(idx); e.dataTransfer.effectAllowed = 'move'; }}
+                  onDragOver={(e) => { if (canEdit) e.preventDefault(); }}
                   onDrop={() => {
+                    if (!canEdit) return;
                     if (draggedIdx !== null && draggedIdx !== idx) {
                       reorderCertifications(draggedIdx, idx);
                     }
                     setDraggedIdx(null);
                   }}
-                  className={`p-4 rounded-xl border transition-all flex items-center justify-between text-xs cursor-grab active:cursor-grabbing ${
+                  className={`p-4 rounded-xl border transition-all flex items-center justify-between text-xs ${canEdit ? 'cursor-grab active:cursor-grabbing' : ''} ${
                     draggedIdx === idx ? 'bg-blue-600/20 border-blue-500 opacity-60' : 'bg-white/5 border-white/10 hover:border-white/20'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="text-gray-400 hover:text-white transition-colors p-1" title="Drag to reorder">
-                      <GripVertical className="w-5 h-5" />
-                    </div>
+                    {canEdit && (
+                      <div className="text-gray-400 hover:text-white transition-colors p-1" title="Drag to reorder">
+                        <GripVertical className="w-5 h-5" />
+                      </div>
+                    )}
                     <div>
                       <div className="font-bold text-white text-sm flex items-center gap-2">
                         <span>{cert.title}</span>
@@ -1574,10 +1873,24 @@ export const AdminPage: React.FC = () => {
                       <div className="text-gray-400">{cert.provider} • {cert.date}</div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => { setEditingCertIdx(idx); setCertForm(cert); setShowForm(true); scrollToForm(); }} className="p-2 rounded-xl bg-blue-500/20 text-blue-300"><Edit2 className="w-4 h-4" /></button>
-                    <button onClick={() => deleteCertification(idx)} className="p-2 rounded-xl bg-red-500/20 text-red-300"><Trash2 className="w-4 h-4" /></button>
-                  </div>
+                  {canEdit && (
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => { setEditingCertIdx(idx); setCertForm(cert); setShowForm(true); scrollToForm(); }} className="p-2 rounded-xl bg-blue-500/20 text-blue-300"><Edit2 className="w-4 h-4" /></button>
+                      <button
+                        type="button"
+                        onClick={() => confirmDelete(
+                          'Delete Certification',
+                          'Are you sure you want to delete this certification? This action cannot be undone.',
+                          () => deleteCertification(idx),
+                          cert.title
+                        )}
+                        className="p-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 cursor-pointer transition-all"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -1598,10 +1911,11 @@ export const AdminPage: React.FC = () => {
               {(statsForm || []).map((stat, idx) => (
                 <div
                   key={idx}
-                  draggable
-                  onDragStart={(e) => { setDraggedIdx(idx); e.dataTransfer.effectAllowed = 'move'; }}
-                  onDragOver={(e) => e.preventDefault()}
+                  draggable={canEdit}
+                  onDragStart={(e) => { if (!canEdit) return; setDraggedIdx(idx); e.dataTransfer.effectAllowed = 'move'; }}
+                  onDragOver={(e) => { if (canEdit) e.preventDefault(); }}
                   onDrop={() => {
+                    if (!canEdit) return;
                     if (draggedIdx !== null && draggedIdx !== idx) {
                       const reordered = [...statsForm];
                       const [moved] = reordered.splice(draggedIdx, 1);
@@ -1610,19 +1924,22 @@ export const AdminPage: React.FC = () => {
                     }
                     setDraggedIdx(null);
                   }}
-                  className={`p-4 rounded-xl border transition-all flex items-center gap-4 text-xs cursor-grab active:cursor-grabbing ${
+                  className={`p-4 rounded-xl border transition-all flex items-center gap-4 text-xs ${canEdit ? 'cursor-grab active:cursor-grabbing' : ''} ${
                     draggedIdx === idx ? 'bg-blue-600/20 border-blue-500 opacity-60' : 'bg-white/5 border-white/10 hover:border-white/20'
                   }`}
                 >
-                  <div className="text-gray-400 hover:text-white transition-colors p-1" title="Drag to reorder">
-                    <GripVertical className="w-5 h-5" />
-                  </div>
+                  {canEdit && (
+                    <div className="text-gray-400 hover:text-white transition-colors p-1" title="Drag to reorder">
+                      <GripVertical className="w-5 h-5" />
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1">
                     <div>
                       <label className="block text-gray-400 mb-1">Label</label>
                       <input
                         type="text"
+                        disabled={!canEdit}
                         placeholder="e.g. Projects Built"
                         value={stat.label}
                         onChange={(e) => {
@@ -1630,13 +1947,14 @@ export const AdminPage: React.FC = () => {
                           updated[idx] = { ...updated[idx], label: e.target.value };
                           setStatsForm(updated);
                         }}
-                        className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-500"
+                        className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-500 disabled:opacity-80"
                       />
                     </div>
                     <div>
                       <label className="block text-gray-400 mb-1">Value</label>
                       <input
                         type="text"
+                        disabled={!canEdit}
                         placeholder="e.g. 20+"
                         value={stat.value}
                         onChange={(e) => {
@@ -1644,13 +1962,14 @@ export const AdminPage: React.FC = () => {
                           updated[idx] = { ...updated[idx], value: e.target.value };
                           setStatsForm(updated);
                         }}
-                        className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-500"
+                        className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-500 disabled:opacity-80"
                       />
                     </div>
                     <div>
                       <label className="block text-gray-400 mb-1">Subtext</label>
                       <input
                         type="text"
+                        disabled={!canEdit}
                         placeholder="e.g. Web & Mobile Applications"
                         value={stat.subtext}
                         onChange={(e) => {
@@ -1658,7 +1977,7 @@ export const AdminPage: React.FC = () => {
                           updated[idx] = { ...updated[idx], subtext: e.target.value };
                           setStatsForm(updated);
                         }}
-                        className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-500"
+                        className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white placeholder-gray-500 disabled:opacity-80"
                       />
                     </div>
                   </div>
@@ -1675,13 +1994,15 @@ export const AdminPage: React.FC = () => {
               ) : (
                 <span />
               )}
-              <button
-                onClick={handleSaveStats}
-                className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-blue-500/20 cursor-pointer transition-all"
-              >
-                <Check className="w-4 h-4" />
-                <span>Confirm & Save Changes</span>
-              </button>
+              {canEdit && (
+                <button
+                  onClick={handleSaveStats}
+                  className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-blue-500/20 cursor-pointer transition-all"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Confirm & Save Changes</span>
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -1696,11 +2017,10 @@ export const AdminPage: React.FC = () => {
                   <ShieldCheck className="w-5 h-5 text-blue-400" />
                   <span>Security & Data Management</span>
                 </h2>
-                <p className="text-xs text-gray-400 mt-1">Manage admin credentials and backup/restore portfolio CSV data.</p>
+                <p className="text-xs text-gray-400 mt-1">Manage admin credentials, temporary sharing passes, and cloud data backup.</p>
               </div>
 
-              {/* Top-Left / Header Sub-section Switcher */}
-              <div className="inline-flex p-1 rounded-xl bg-black/40 border border-white/10 self-start sm:self-auto">
+              <div className="inline-flex p-1 rounded-xl bg-black/40 border border-white/10 self-start sm:self-auto flex-wrap gap-1">
                 <button
                   type="button"
                   onClick={() => setSecuritySubSection('security')}
@@ -1712,6 +2032,18 @@ export const AdminPage: React.FC = () => {
                 >
                   <KeyRound className="w-3.5 h-3.5" />
                   <span>Admin Security</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSecuritySubSection('temporary')}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    securitySubSection === 'temporary'
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Temporary Access</span>
                 </button>
                 <button
                   type="button"
@@ -1784,7 +2116,7 @@ export const AdminPage: React.FC = () => {
 
                 <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       setSecError('');
                       if (!secUsername.trim() || !secPassword.trim()) {
                         setSecError('Username and password cannot be empty.');
@@ -1794,7 +2126,7 @@ export const AdminPage: React.FC = () => {
                         setSecError('Passwords do not match.');
                         return;
                       }
-                      const ok = updateAdminCredentials(secUsername, secPassword);
+                      const ok = await updateAdminCredentials(secUsername, secPassword);
                       if (ok) {
                         setSecPassword('');
                         setSecConfirmPassword('');
@@ -1807,45 +2139,371 @@ export const AdminPage: React.FC = () => {
                   </button>
 
                   <button
-                    onClick={() => {
-                      resetAdminCredentials();
-                      setSecUsername('');
-                      setSecPassword('');
-                      setSecConfirmPassword('');
-                    }}
+                    type="button"
+                    onClick={() => confirmDelete(
+                      'Reset Admin Credentials',
+                      'Are you sure you want to reset admin credentials back to default (.env / default accounts)? Your custom username and password will be cleared.',
+                      () => {
+                        resetAdminCredentials();
+                        setSecUsername('premkumar');
+                        setSecPassword('');
+                        setSecConfirmPassword('');
+                      },
+                      'Default Credentials'
+                    )}
                     className="px-4 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold flex items-center gap-1.5 border border-white/10 cursor-pointer"
                   >
+                    <RotateCcw className="w-4 h-4" />
                     <span>Reset to Default / .env</span>
                   </button>
-                </div>
-
-                <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-xs space-y-2">
-                  <div className="font-bold text-gray-200">How Credential Storage Works</div>
-                  <p className="text-[11px] text-gray-400 leading-relaxed">
-                    Updating credentials here saves them to secure browser storage so your new login works instantly.
-                    Due to browser security rules, client-side web apps cannot directly overwrite files on disk (<code className="text-blue-400 font-mono">.env</code>).
-                  </p>
-                  {secUsername && (
-                    <div className="p-3 rounded-lg bg-black/60 border border-white/10 font-mono text-[11px] text-emerald-400">
-                      <div>VITE_ADMIN_USERNAME={secUsername}</div>
-                      <div>VITE_ADMIN_PASSWORD={secPassword || '••••••••'}</div>
-                    </div>
-                  )}
                 </div>
 
                 <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300 space-y-1">
                   <div className="font-bold text-white flex items-center gap-1.5">
                     <ShieldCheck className="w-4 h-4 text-blue-400" />
-                    <span>Emergency Recovery Option</span>
+                    <span>Emergency Master Recovery</span>
                   </div>
                   <p className="text-[11px] text-gray-300">
-                    If you ever forget your custom credentials, master emergency login remains available using <code className="text-blue-300 font-mono">admin</code> / <code className="text-blue-300 font-mono">admin2615</code>.
+                    If you ever lose access, master recovery login remains accessible using <code className="text-blue-300 font-mono">admin</code> / <code className="text-blue-300 font-mono">admin2615</code>.
                   </p>
                 </div>
               </div>
             )}
 
-            {/* SECTION 2: DATA BACKUP (DOWNLOAD SUPABASE DATA) */}
+            {/* SECTION 2: TEMPORARY SECURITY & SHARING PASS */}
+            {securitySubSection === 'temporary' && (() => {
+              const activePass = data?.tempCredential;
+              const isPassExpired = activePass ? Date.now() > activePass.expiresAt : false;
+              const hasActivePass = Boolean(activePass && !isPassExpired);
+
+              return (
+                <div className="space-y-6 max-w-3xl">
+                  {/* If pass is active, show ONLY the Active Temporary Pass card */}
+                  {hasActivePass && activePass ? (
+                    <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-4">
+                      <div>
+                        <h3 className="text-base font-bold text-white flex items-center gap-2">
+                          <Clock className="w-5 h-5 text-indigo-400" />
+                          <span>Active Temporary Sharing Pass</span>
+                        </h3>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Only one temporary pass is allowed at a time. Delete this pass or wait until it expires to generate a new one.
+                        </p>
+                      </div>
+
+                      {(() => {
+                        const remainingMs = activePass.expiresAt - Date.now();
+                        const remainingHours = Math.max(0, Math.floor(remainingMs / (3600 * 1000)));
+                        const remainingDays = Math.floor(remainingHours / 24);
+
+                        const formattedExpiry = new Date(activePass.expiresAt).toLocaleString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true,
+                        });
+
+                        const handleCopy = () => {
+                          const u = activePass.plainUsername || 'Temporary User';
+                          const p = activePass.plainPassword || '';
+                          const permLabel = activePass.permission === 'edit' ? 'Can Edit' : 'Read-Only';
+                          const shareText = `Username: ${u}\nPassword: ${p}\nPermission: ${permLabel}\nValid until: ${formattedExpiry}`;
+                          navigator.clipboard.writeText(shareText);
+                          setCopiedTempId(activePass.id);
+                          setTimeout(() => setCopiedTempId(null), 2500);
+                        };
+
+                        return (
+                          <div className="p-4 rounded-xl bg-black/40 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="space-y-1 text-xs">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-white text-sm">{activePass.plainUsername || 'Temporary User'}</span>
+                                <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold">
+                                  Active ({remainingDays > 0 ? `${remainingDays}d ${remainingHours % 24}h left` : `${remainingHours}h left`})
+                                </span>
+                                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${
+                                  activePass.permission === 'edit'
+                                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                                    : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                                }`}>
+                                  {activePass.permission === 'edit' ? 'Can Edit' : 'Read-Only'}
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-gray-400 flex flex-wrap items-center gap-x-3 gap-y-1">
+                                {activePass.plainPassword && (
+                                  <span>Password: <code className="text-indigo-300 font-mono">{activePass.plainPassword}</code></span>
+                                )}
+                                <span>Expires: <strong className="text-gray-200">{formattedExpiry}</strong></span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
+                              {/* Read / Edit Permission Toggle */}
+                              <div className="flex items-center p-0.5 rounded-xl bg-black/60 border border-white/10">
+                                <button
+                                  type="button"
+                                  onClick={() => updateTempPermission('read')}
+                                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                                    activePass.permission !== 'edit'
+                                      ? 'bg-amber-500/25 text-amber-300 border border-amber-500/40 shadow-sm'
+                                      : 'text-gray-400 hover:text-white border border-transparent'
+                                  }`}
+                                  title="Change guest permission to Read-Only"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                  <span>Read</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => updateTempPermission('edit')}
+                                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                                    activePass.permission === 'edit'
+                                      ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 shadow-sm'
+                                      : 'text-gray-400 hover:text-white border border-transparent'
+                                  }`}
+                                  title="Change guest permission to Can Edit"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                  <span>Edit</span>
+                                </button>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={handleCopy}
+                                className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                              >
+                                {copiedTempId === activePass.id ? (
+                                  <>
+                                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                    <span className="text-emerald-400">Copied!</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3.5 h-3.5 text-gray-300" />
+                                    <span>Copy Share Details</span>
+                                  </>
+                                )}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  confirmDelete(
+                                    'Delete Temporary Pass',
+                                    'Are you sure you want to delete this temporary access pass? The user will be immediately logged out.',
+                                    () => deleteTempCredential(),
+                                    activePass.plainUsername || 'Active Pass'
+                                  )
+                                }
+                                className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-all cursor-pointer"
+                                title="Delete Pass"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  ) : (
+                    /* Generator Form */
+                    <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-5">
+                      <div>
+                        <h3 className="text-base font-bold text-white flex items-center gap-2">
+                          <UserPlus className="w-5 h-5 text-indigo-400" />
+                          <span>Generate Temporary Sharing Access</span>
+                        </h3>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Create temporary username and password for reviewers or clients. Only hashes and expiration are saved in CSV and Supabase.
+                        </p>
+                      </div>
+
+                      <form onSubmit={handleCreateTempPass} className="space-y-4 text-xs">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {/* Temporary Username */}
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="text-gray-300 font-semibold">Temporary Username</label>
+                              <button
+                                type="button"
+                                onClick={generateRandomTempCreds}
+                                className="text-[11px] text-blue-400 hover:text-blue-300 flex items-center gap-1 cursor-pointer"
+                              >
+                                <RefreshCw className="w-3 h-3" />
+                                <span>Auto Generate</span>
+                              </button>
+                            </div>
+                            <input
+                              type="text"
+                              value={tempUsername}
+                              onChange={(e) => setTempUsername(e.target.value)}
+                              placeholder="e.g. reviewer_guest"
+                              className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-sm focus:outline-none focus:border-indigo-500"
+                            />
+                          </div>
+
+                          {/* Temporary Password */}
+                          <div>
+                            <label className="block text-gray-300 font-semibold mb-1">Temporary Password</label>
+                            <div className="relative">
+                              <input
+                                type={showTempPass ? 'text' : 'password'}
+                                value={tempPassword}
+                                onChange={(e) => setTempPassword(e.target.value)}
+                                placeholder="Enter or generate password"
+                                className="w-full pl-3.5 pr-10 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-sm focus:outline-none focus:border-indigo-500"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowTempPass(!showTempPass)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors cursor-pointer p-1"
+                                title={showTempPass ? 'Hide password' : 'Show password'}
+                              >
+                                {showTempPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Validity Period Selector (1 hour to 30 days) */}
+                        <div>
+                          <label className="block text-gray-300 mb-1.5 font-semibold flex items-center gap-1.5">
+                            <Clock className="w-4 h-4 text-indigo-400" />
+                            <span>Validity Period (1 Hour to 30 Days)</span>
+                          </label>
+                          <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
+                            {[
+                              { hours: 1, label: '1h' },
+                              { hours: 6, label: '6h' },
+                              { hours: 12, label: '12h' },
+                              { hours: 24, label: '1 Day' },
+                              { hours: 72, label: '3 Days' },
+                              { hours: 168, label: '7 Days' },
+                              { hours: 336, label: '14 Days' },
+                              { hours: 720, label: '30 Days' },
+                            ].map(({ hours, label }) => (
+                              <button
+                                key={hours}
+                                type="button"
+                                onClick={() => setTempDurationHours(hours)}
+                                className={`py-2 px-1 rounded-xl text-xs font-semibold text-center transition-all cursor-pointer border ${
+                                  tempDurationHours === hours
+                                    ? 'bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-500/20'
+                                    : 'bg-black/30 border-white/10 text-gray-400 hover:text-white hover:border-white/20'
+                                }`}
+                              >
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                          <p className="text-[11px] text-gray-400 mt-1.5">
+                            Access automatically expires after {tempDurationHours} hours ({tempDurationHours >= 24 ? `${Math.round(tempDurationHours / 24)} days` : `${tempDurationHours} hours`}).
+                          </p>
+                        </div>
+
+                        {/* Access Permission Selector (Read or Edit) */}
+                        <div>
+                          <label className="block text-gray-300 mb-1.5 font-semibold flex items-center gap-1.5">
+                            <ShieldCheck className="w-4 h-4 text-indigo-400" />
+                            <span>Access Permission (Read or Edit)</span>
+                          </label>
+                          <div className="grid grid-cols-2 gap-2 max-w-xs">
+                            <button
+                              type="button"
+                              onClick={() => setTempPermissionSelect('read')}
+                              className={`py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer border ${
+                                tempPermissionSelect === 'read'
+                                  ? 'bg-amber-500/20 border-amber-500 text-amber-300 shadow-md shadow-amber-500/20'
+                                  : 'bg-black/30 border-white/10 text-gray-400 hover:text-white hover:border-white/20'
+                              }`}
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>Read-Only</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setTempPermissionSelect('edit')}
+                              className={`py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer border ${
+                                tempPermissionSelect === 'edit'
+                                  ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 shadow-md shadow-emerald-500/20'
+                                  : 'bg-black/30 border-white/10 text-gray-400 hover:text-white hover:border-white/20'
+                              }`}
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                              <span>Can Edit</span>
+                            </button>
+                          </div>
+                          <p className="text-[11px] text-gray-400 mt-1.5">
+                            {tempPermissionSelect === 'read'
+                              ? 'Guest can view dashboard content, but cannot add, edit, or delete items.'
+                              : 'Guest has full permission to add, edit, and reorder portfolio content.'}
+                          </p>
+                        </div>
+
+                        {tempError && (
+                          <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-center gap-2">
+                            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                            <span>{tempError}</span>
+                          </div>
+                        )}
+
+                        <button
+                          type="submit"
+                          className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-indigo-500/20 cursor-pointer transition-all"
+                        >
+                          <UserPlus className="w-4 h-4" />
+                          <span>Generate Temporary Pass</span>
+                        </button>
+                      </form>
+                    </div>
+                  )}
+
+                  {/* If pass expired, show the expired pass card below generator so admin can delete it */}
+                  {isPassExpired && activePass && (
+                    <div className="p-6 rounded-2xl bg-white/5 border border-red-500/20 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-bold text-gray-300 flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-red-400" />
+                          <span>Previous Pass (Expired)</span>
+                        </h4>
+                      </div>
+                      <div className="p-4 rounded-xl bg-black/40 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="space-y-1 text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-gray-300 text-sm">{activePass.plainUsername || 'Temporary User'}</span>
+                            <span className="px-2 py-0.5 rounded-md bg-red-500/20 border border-red-500/30 text-red-300 text-[10px] font-bold">
+                              Expired
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-gray-400">
+                            Expired on: {new Date(activePass.expiresAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            confirmDelete(
+                              'Delete Expired Pass',
+                              'Are you sure you want to delete this expired pass?',
+                              () => deleteTempCredential(),
+                              activePass.plainUsername || 'Expired Pass'
+                            )
+                          }
+                          className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-all cursor-pointer self-end sm:self-auto"
+                          title="Delete Expired Pass"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* SECTION 3: DATA BACKUP (DOWNLOAD SUPABASE DATA) */}
             {securitySubSection === 'backup' && (
               <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-5 max-w-xl">
                 <div>
@@ -1886,11 +2544,12 @@ export const AdminPage: React.FC = () => {
                   </div>
                   <button
                     type="button"
-                    onClick={() => {
-                      if (window.confirm("Reset all portfolio data to factory defaults?")) {
-                        resetToDefaults();
-                      }
-                    }}
+                    onClick={() => confirmDelete(
+                      'Reset All Data',
+                      'Are you sure you want to reset all portfolio data to factory defaults? All your custom modifications will be replaced with default data.',
+                      () => resetToDefaults(),
+                      'All Portfolio Content'
+                    )}
                     className="px-3.5 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
@@ -1903,6 +2562,76 @@ export const AdminPage: React.FC = () => {
         )}
 
       </main>
+
+      {/* Center Delete Confirmation Modal Container */}
+      {deleteDialog?.isOpen && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in"
+          onClick={() => setDeleteDialog(null)}
+        >
+          <div 
+            className="relative w-full max-w-md bg-[#0b0f24] border border-white/15 rounded-2xl shadow-2xl p-6 sm:p-7 overflow-hidden text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Ambient Background Glow */}
+            <div className="absolute -top-20 -right-20 w-40 h-40 bg-red-500/15 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
+            {/* Top Close Button */}
+            <button
+              onClick={() => setDeleteDialog(null)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
+              title="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {/* Center Warning Icon */}
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-red-600 via-rose-600 to-amber-600 p-[1px] mx-auto mb-4 shadow-lg shadow-red-500/25">
+              <div className="w-full h-full bg-[#070a18] rounded-[15px] flex items-center justify-center">
+                <AlertTriangle className="w-7 h-7 text-red-400" />
+              </div>
+            </div>
+
+            {/* Title & Description */}
+            <h3 className="text-lg font-extrabold text-white mb-2">
+              {deleteDialog.title}
+            </h3>
+
+            <p className="text-xs text-gray-300 leading-relaxed mb-4">
+              {deleteDialog.message}
+            </p>
+
+            {/* Optional Item Name Display */}
+            {deleteDialog.itemName && (
+              <div className="px-3.5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-semibold text-white/90 truncate mb-5 flex items-center justify-center gap-2">
+                <span className="text-gray-400">Target:</span>
+                <span className="text-red-300 truncate max-w-[260px]">{deleteDialog.itemName}</span>
+              </div>
+            )}
+
+            {/* Action Buttons: Cancel and Delete */}
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteDialog(null)}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-gray-300 hover:text-white text-xs font-semibold cursor-pointer transition-all"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleExecuteDelete}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-xs font-bold shadow-lg shadow-red-500/25 flex items-center justify-center gap-2 cursor-pointer transition-all"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Yes, Delete</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

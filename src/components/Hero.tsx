@@ -11,15 +11,23 @@ const Hero: React.FC = () => {
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const { data } = usePortfolio();
 
-  const resumeUrl = getAssetUrl("resume/Prem_Kumar_Resume.pdf");
-
   const primaryResume = data?.resumes?.find((r) => r.isPrimary) || data?.resumes?.[0];
+
+  const activeResumeUrl = primaryResume?.fileData 
+    ? (primaryResume.fileData.startsWith('data:') ? primaryResume.fileData : getAssetUrl(primaryResume.fileData))
+    : getAssetUrl("resume/Prem_Kumar_Resume.pdf");
+
+  const activeDownloadName = primaryResume?.name 
+    ? (primaryResume.name.endsWith('.pdf') ? primaryResume.name : `${primaryResume.name}.pdf`)
+    : "Prem_Kumar_Resume.pdf";
 
   const handleResumeDownload = async (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
     if (primaryResume && primaryResume.fileData) {
-      const fileUrl = getAssetUrl(primaryResume.fileData);
-      const downloadName = primaryResume.name?.endsWith('.pdf') ? primaryResume.name : `${primaryResume.name || 'Prem_Kumar_Resume'}.pdf`;
+      const fileUrl = primaryResume.fileData.startsWith('data:') 
+        ? primaryResume.fileData 
+        : getAssetUrl(primaryResume.fileData);
+      const downloadName = activeDownloadName;
       
       if (primaryResume.fileData.startsWith('data:')) {
         try {
@@ -64,27 +72,27 @@ const Hero: React.FC = () => {
     }
 
     try {
-      let res = await fetch(resumeUrl);
+      let res = await fetch(activeResumeUrl);
       if (!res.ok) {
         // Try fallback location
         const fallbackUrl = getAssetUrl("resume.pdf");
         res = await fetch(fallbackUrl);
       }
       if (!res.ok) {
-        window.open(resumeUrl, "_blank");
+        window.open(activeResumeUrl, "_blank");
         return;
       }
       const blob = await res.blob();
       const blobUrl = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = blobUrl;
-      link.download = "Prem_Kumar_Resume.pdf";
+      link.download = activeDownloadName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
     } catch {
-      window.open(resumeUrl, "_blank");
+      window.open(activeResumeUrl, "_blank");
     }
   };
 
@@ -177,9 +185,9 @@ const Hero: React.FC = () => {
             {/* Action Buttons Grid */}
             <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2.5 sm:gap-4 pt-1 w-full max-w-full">
               <a
-                href={resumeUrl}
+                href={activeResumeUrl}
                 onClick={handleResumeDownload}
-                download="Prem_Kumar_Resume.pdf"
+                download={activeDownloadName}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full sm:w-auto"

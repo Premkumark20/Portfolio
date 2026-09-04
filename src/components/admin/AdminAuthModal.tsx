@@ -18,22 +18,35 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({ isOpen, onClose,
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      const success = login(username, password);
+    try {
+      const success = await login(username, password);
       setIsSubmitting(false);
       if (success) {
         setUsername('');
         setPassword('');
+        setErrorMsg('');
+        setShowPassword(false);
         onSuccess();
       } else {
         setErrorMsg('Invalid administrator credentials. Please check your username and password.');
       }
-    }, 400);
+    } catch {
+      setIsSubmitting(false);
+      setErrorMsg('An error occurred during authentication.');
+    }
+  };
+
+  const handleClose = () => {
+    setUsername('');
+    setPassword('');
+    setErrorMsg('');
+    setShowPassword(false);
+    onClose();
   };
 
   return (
@@ -48,7 +61,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({ isOpen, onClose,
 
         {/* Close Button */}
         <button
-          onClick={onClose}
+          onClick={handleClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-white p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
         >
           ✕

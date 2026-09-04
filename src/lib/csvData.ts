@@ -22,6 +22,18 @@ export interface ResumeItem {
   isPrimary: boolean;
 }
 
+export interface TempCredential {
+  id: string;
+  userHash: string;
+  passHash: string;
+  createdAt: number;
+  expiresAt: number;
+  durationLabel: string;
+  permission: 'read' | 'edit';
+  plainUsername?: string;
+  plainPassword?: string;
+}
+
 export interface PortfolioData {
   name: string;
   title: string;
@@ -92,6 +104,9 @@ export interface PortfolioData {
     value: string;
     subtext: string;
   }>;
+  adminUserHash?: string;
+  adminPassHash?: string;
+  tempCredential?: TempCredential | null;
 }
 
 
@@ -108,7 +123,7 @@ export const parseCSVData = (csvText: string): PortfolioData => {
       if (firstCommaIndex !== -1) {
         const field = line.substring(0, firstCommaIndex).trim();
         let value = line.substring(firstCommaIndex + 1).trim();
-        // Clean trailing commas added by Google Sheets export (e.g. "PREM,,,,,,,,")
+        // Clean trailing commas added by Google Sheets export (e.g. "Name,,,,,,,,")
         value = value.replace(/,+$/, '').trim();
         // Strip wrapping quotes if exported with quotes
         if (value.startsWith('"') && value.endsWith('"')) {
@@ -291,6 +306,45 @@ export const parseCSVData = (csvText: string): PortfolioData => {
 
     const heroTags = (data.hero_tags || '').split(',').map(t => t.trim()).filter(Boolean);
 
+    const adminUserHash = data['auth_admin_user_hash'] || data['admin_user_hash'] || data['auth_admin_username_hash'] || '';
+    const adminPassHash = data['auth_admin_pass_hash'] || data['admin_pass_hash'] || data['auth_admin_password_hash'] || '';
+
+    let tempCredential: TempCredential | null = null;
+    const tempUserHash = data['temp_cred_user_hash'] || data['temp_cred1_user_hash'];
+    const tempPassHash = data['temp_cred_pass_hash'] || data['temp_cred1_pass_hash'];
+    const tempExpiresAt = parseInt(data['temp_cred_expires_at'] || data['temp_cred1_expires_at'] || '0', 10);
+    const tempCreatedAt = parseInt(data['temp_cred_created_at'] || data['temp_cred1_created_at'] || '0', 10);
+    const tempDuration = data['temp_cred_duration'] || data['temp_cred1_duration'] || 'Custom';
+    const tempPermRaw = data['temp_cred_permission'] || data['temp_cred1_permission'] || 'read';
+    const tempPermission: 'read' | 'edit' = tempPermRaw === 'edit' ? 'edit' : 'read';
+
+    if (tempUserHash && tempPassHash && !isNaN(tempExpiresAt) && tempExpiresAt > 0) {
+      let plainUsername = '';
+      let plainPassword = '';
+      try {
+        const cached = localStorage.getItem('portfolio_temp_plain_cache');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed.userHash === tempUserHash && parsed.passHash === tempPassHash) {
+            plainUsername = parsed.username || '';
+            plainPassword = parsed.password || '';
+          }
+        }
+      } catch {}
+
+      tempCredential = {
+        id: `temp-${tempCreatedAt || Date.now()}`,
+        userHash: tempUserHash,
+        passHash: tempPassHash,
+        createdAt: tempCreatedAt || Date.now(),
+        expiresAt: tempExpiresAt,
+        durationLabel: tempDuration,
+        permission: tempPermission,
+        plainUsername: plainUsername || 'Temporary User',
+        plainPassword: plainPassword || '',
+      };
+    }
+
     return {
       name: data.name || '',
       title: data.title || '',
@@ -317,6 +371,9 @@ export const parseCSVData = (csvText: string): PortfolioData => {
       servicesList,
       skillsList,
       statsList,
+      adminUserHash,
+      adminPassHash,
+      tempCredential,
     };
   } catch (error) {
     console.error('Error parsing CSV:', error);
@@ -447,6 +504,20 @@ export const generateCSVFromData = (data: PortfolioData): string => {
     addLine(`exp${idx}_gradient`, exp.gradient || '');
   });
 
+  // Hashed Admin Credentials (if customized)
+  if (data.adminUserHash) addLine('auth_admin_user_hash', data.adminUserHash);
+  if (data.adminPassHash) addLine('auth_admin_pass_hash', data.adminPassHash);
+
+  // Temporary Credential (ONLY hashes and expiration, ZERO actual username or password)
+  if (data.tempCredential && data.tempCredential.userHash && data.tempCredential.passHash) {
+    addLine('temp_cred_user_hash', data.tempCredential.userHash);
+    addLine('temp_cred_pass_hash', data.tempCredential.passHash);
+    addLine('temp_cred_expires_at', data.tempCredential.expiresAt);
+    addLine('temp_cred_created_at', data.tempCredential.createdAt);
+    addLine('temp_cred_duration', data.tempCredential.durationLabel);
+    addLine('temp_cred_permission', data.tempCredential.permission || 'read');
+  }
+
   return lines.join('\n');
 };
 
@@ -527,43 +598,85 @@ export const saveCSVToServer = async (csvText: string) => {
   }
 };
 
-export const saveCSVToSupabase = async (csvText: string) => {
-  if (!supabase || !_supabaseReachable) return;
+export const saveCSVToSupabase = async (csvText: string): Promise<boolean> => {
+  if (!supabase) {
+    console.warn('Supabase client is not available.');
+    return false;
+  }
   try {
     const { error } = await supabase
       .from('portfolio_data')
       .upsert({ id: 'main', content: csvText, updated_at: new Date().toISOString() });
     if (error) {
-      _supabaseReachable = false;
-      console.info('Supabase project paused or unreachable. Data is safely stored locally.');
+      console.warn('Supabase save warning:', error.message);
+      return false;
     } else {
       console.log('Portfolio CSV saved to Supabase cloud database.');
+      return true;
     }
   } catch (err: any) {
-    _supabaseReachable = false;
-    console.info('Supabase project paused or unreachable. Data is safely stored locally.');
+    console.warn('Supabase save exception:', err);
+    return false;
   }
 };
 
-export const updateCachedData = (newData: PortfolioData) => {
+export const updateCachedData = async (newData: PortfolioData): Promise<boolean> => {
   _cachedData = newData;
   const csv = generateCSVFromData(newData);
   saveCSVToStorage(csv);
   saveCSVToServer(csv);
-  saveCSVToSupabase(csv);
+  const cloudOk = await saveCSVToSupabase(csv);
+  return cloudOk;
 };
 
-export const fetchPortfolioData = async (): Promise<PortfolioData> => {
-  if (_cachedData && _cachedData.name) return _cachedData;
-  if (_fetchPromise) return _fetchPromise;
+export const fetchPortfolioData = async (forceRefresh: boolean = false): Promise<PortfolioData> => {
+  if (!forceRefresh && _cachedData && _cachedData.name) return _cachedData;
+  if (!forceRefresh && _fetchPromise) return _fetchPromise;
 
   _fetchPromise = _doFetch();
-  _cachedData = await _fetchPromise;
+  try {
+    _cachedData = await _fetchPromise;
+  } finally {
+    _fetchPromise = null;
+  }
   return _cachedData;
 };
 
 const _doFetch = async (): Promise<PortfolioData> => {
-  // 1. Check valid custom stored CSV first
+  // 1. Primary: Query Supabase Cloud Database first to synchronize latest data across all devices (Desktop, Mobile, etc.)
+  if (supabase) {
+    try {
+      const timeoutPromise = new Promise<null>((_, reject) =>
+        setTimeout(() => reject(new Error('Supabase fetch timed out')), 6000)
+      );
+
+      const fetchPromise = (async () => {
+        const { data: row, error } = await supabase
+          .from('portfolio_data')
+          .select('content')
+          .eq('id', 'main')
+          .maybeSingle();
+
+        if (error || !row?.content) return null;
+        return row.content;
+      })();
+
+      const content = await Promise.race([fetchPromise, timeoutPromise]);
+      if (content && typeof content === 'string' && content.trim()) {
+        const supabaseData = parseCSVData(content);
+        if (supabaseData.name && supabaseData.name.trim()) {
+          console.log('Portfolio data loaded from Supabase Cloud Database.');
+          saveCSVToStorage(content);
+          _cachedData = supabaseData;
+          return supabaseData;
+        }
+      }
+    } catch (err: any) {
+      console.info('Supabase cloud fetch skipped or timed out, falling back to local storage / static CSV.', err);
+    }
+  }
+
+  // 2. Check valid custom stored CSV in localStorage
   const customCsv = loadCSVFromStorage();
   if (customCsv && customCsv.trim()) {
     const localData = parseCSVData(customCsv);
@@ -574,7 +687,7 @@ const _doFetch = async (): Promise<PortfolioData> => {
     }
   }
 
-  // 2. Instant fetch static portfolio.csv file (from dist/public /data/portfolio.csv)
+  // 3. Fetch static portfolio.csv file (from dist/public /data/portfolio.csv)
   try {
     const cacheBuster = `${Date.now()}`;
     const base = (import.meta as any).env?.BASE_URL || './';
@@ -603,39 +716,6 @@ const _doFetch = async (): Promise<PortfolioData> => {
     }
   } catch (error) {
     console.warn('Local CSV fetch error:', error);
-  }
-
-  // 3. Fallback: Query Supabase only if local CSV was unavailable and Supabase is reachable
-  if (supabase && _supabaseReachable) {
-    try {
-      const timeoutPromise = new Promise<null>((_, reject) =>
-        setTimeout(() => reject(new Error('Supabase fetch timed out')), 2000)
-      );
-
-      const fetchPromise = (async () => {
-        const { data: row, error } = await supabase
-          .from('portfolio_data')
-          .select('content')
-          .eq('id', 'main')
-          .maybeSingle();
-
-        if (error || !row?.content) return null;
-        return row.content;
-      })();
-
-      const content = await Promise.race([fetchPromise, timeoutPromise]);
-      if (content && typeof content === 'string' && content.trim()) {
-        const supabaseData = parseCSVData(content);
-        if (supabaseData.name && supabaseData.name.trim()) {
-          console.log('Portfolio data loaded from Supabase Cloud Database.');
-          _cachedData = supabaseData;
-          return supabaseData;
-        }
-      }
-    } catch (err: any) {
-      _supabaseReachable = false;
-      console.info('Supabase cloud fetch skipped/unavailable, using bundled portfolio data.');
-    }
   }
 
   // 4. Default guaranteed fallback loaded from bundled portfolio.csv
