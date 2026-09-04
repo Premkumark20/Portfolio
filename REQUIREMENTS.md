@@ -76,7 +76,7 @@
    - Dynamic 16-hex random salts are generated via `crypto.getRandomValues` for custom credentials and temporary passes.
 
 2. **Built-in Authentication Accounts**:
-   - **Default Administrator**: yourusername / yourpassword (Salt: `default_auth`)
+   - **Default Administrator**: `yourusername` / `yourpassword` (Salt: `default_auth`)
    - **Master Recovery Fail-safe**: `youradmin` / `youradminpassword` (Salt: `master_recovery`) — always available for recovery if custom credentials are forgotten.
 
 3. **Temporary Access Passes**:

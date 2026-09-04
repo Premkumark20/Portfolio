@@ -164,7 +164,7 @@ Access the full admin dashboard at `/admin` (opens in a new tab from the footer,
 
 ### Authentication & Access Control:
 - **Salted SHA-256 Cryptographic Hashes**: Passwords and temporary credentials use salted hashing (`salt:hash`), protecting against rainbow table and dictionary lookup attacks.
-- **Default Administrator**: yourusername/ yourpassword (Salt: `default_auth`).
+- **Default Administrator**: `yourusername`/ `yourpassword` (Salt: `default_auth`).
 - **Master Recovery Fail-safe**: `youradmin` / `youradminpassword` (Salt: `master_recovery`) — always available for recovery if custom credentials are forgotten.
 - **Custom Admin Credentials**: Change credentials at any time in the Security tab; synced to Supabase with dynamically generated cryptographic salts.
 - **Temporary Sharing Passes**: Generate time-bounded passes (1 hour to 30 days) with configurable permissions (**Read-Only** or **Can Edit**). Automatically revoked and logged out live upon expiration.
