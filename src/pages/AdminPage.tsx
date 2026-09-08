@@ -65,15 +65,7 @@ export const AdminPage: React.FC = () => {
   type AdminTabId = 'personal' | 'resumes' | 'projects' | 'education' | 'experience' | 'services' | 'skills' | 'certifications' | 'stats' | 'security';
   const validTabs: AdminTabId[] = ['personal', 'resumes', 'projects', 'education', 'experience', 'services', 'skills', 'certifications', 'stats', 'security'];
 
-  const [activeTab, setActiveTab] = useState<AdminTabId>(() => {
-    try {
-      const hash = window.location.hash.replace('#', '') as AdminTabId;
-      if (hash && validTabs.includes(hash)) return hash;
-      const saved = sessionStorage.getItem('portfolio_admin_active_tab') as AdminTabId | null;
-      if (saved && validTabs.includes(saved)) return saved;
-    } catch {}
-    return 'personal';
-  });
+  const [activeTab, setActiveTab] = useState<AdminTabId>('personal');
 
   const [securitySubSection, setSecuritySubSection] = useState<'security' | 'temporary' | 'backup'>(() => {
     try {
@@ -304,7 +296,6 @@ export const AdminPage: React.FC = () => {
   const [certForm, setCertForm] = useState<PortfolioData['certifications'][0]>({
     title: '', provider: '', date: '', certificateId: '', link: '', level: 'Professional'
   });
-
   // Auto Scroll helper to bring form into view smoothly
   const scrollToForm = () => {
     setTimeout(() => {
@@ -334,6 +325,32 @@ export const AdminPage: React.FC = () => {
     setAuthError('');
     setShowAuthPassword(false);
     logout();
+  };
+
+  // Handle Close Button - Auto Logout & Attempt Tab Closure / Fallback to about:blank without redirecting to portfolio
+  const handleCloseTab = () => {
+    // 1. Auto logout from admin session immediately
+    handleLogout();
+
+    // 2. Execute window close tricks for modern browsers
+    try {
+      window.close();
+    } catch {}
+
+    try {
+      window.opener = null;
+      window.open('', '_self', '');
+      window.close();
+    } catch {}
+
+    // 3. Fallback: If browser security prevents script tab closure, navigate to blank tab without redirecting to portfolio
+    setTimeout(() => {
+      if (!document.hidden) {
+        try {
+          window.location.href = 'about:blank';
+        } catch {}
+      }
+    }, 150);
   };
 
   const generateRandomTempCreds = () => {
@@ -371,7 +388,6 @@ export const AdminPage: React.FC = () => {
       setShowTempPass(false);
     }
   };
-
   // Resume File Upload Reader
   const handleResumeFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -542,14 +558,15 @@ export const AdminPage: React.FC = () => {
             </button>
 
             <button
-              onClick={() => window.close()}
+              onClick={handleCloseTab}
               className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white transition-all flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
-              title="Close Tab"
+              title="Close Tab & Auto Logout"
             >
               <X className="w-4 h-4" />
               <span>Close</span>
             </button>
           </div>
+
         </div>
 
         {/* Mobile Tab Select (inside fixed header so tabs remain fixed on mobile too) */}
