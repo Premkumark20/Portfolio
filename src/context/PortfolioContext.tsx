@@ -40,6 +40,7 @@ interface PortfolioContextType {
   updateAdminCredentials: (newUsername: string, newPassword: string) => Promise<boolean>;
   resetAdminCredentials: () => Promise<void> | void;
   createTempCredential: (username: string, password: string, durationHours: number, permission?: 'read' | 'edit') => Promise<boolean>;
+  updateTempCredentials: (username: string, password: string) => Promise<boolean>;
   updateTempPermission: (permission: 'read' | 'edit') => Promise<boolean>;
   deleteTempCredential: () => Promise<void> | void;
   updatePersonalInfo: (fields: Partial<PortfolioData>) => void;
@@ -619,6 +620,48 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return true;
   };
 
+  const updateTempCredentials = async (
+    username: string,
+    password: string
+  ): Promise<boolean> => {
+    if (!data || !data.tempCredential) {
+      toast.error('No active temporary pass found to update.');
+      return false;
+    }
+    const u = username.trim();
+    const p = password.trim();
+    if (!u || !p) {
+      toast.error('Username and password cannot be empty!');
+      return false;
+    }
+
+    const userHash = await createSaltedHash(u);
+    const passHash = await createSaltedHash(p);
+
+    // Cache locally as well
+    try {
+      localStorage.setItem('portfolio_temp_plain_cache', JSON.stringify({
+        userHash,
+        passHash,
+        username: u,
+        password: p,
+      }));
+    } catch {}
+
+    const updatedTemp: TempCredential = {
+      ...data.tempCredential,
+      userHash,
+      passHash,
+      plainUsername: u,
+      plainPassword: p,
+    };
+
+    const updated = { ...data, tempCredential: updatedTemp };
+    await saveAndSync(updated);
+    toast.success('Temporary pass credentials updated and synced to cloud!');
+    return true;
+  };
+
   const updateTempPermission = async (permission: 'read' | 'edit'): Promise<boolean> => {
     if (!data || !data.tempCredential) return false;
     const updatedTemp: TempCredential = {
@@ -1108,6 +1151,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         updateAdminCredentials,
         resetAdminCredentials,
         createTempCredential,
+        updateTempCredentials,
         updateTempPermission,
         deleteTempCredential,
         updatePersonalInfo,

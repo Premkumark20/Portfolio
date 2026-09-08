@@ -24,6 +24,7 @@ export const AdminPage: React.FC = () => {
     updateAdminCredentials,
     resetAdminCredentials,
     createTempCredential,
+    updateTempCredentials,
     updateTempPermission,
     deleteTempCredential,
     updatePersonalInfo,
@@ -112,6 +113,9 @@ export const AdminPage: React.FC = () => {
   const [showTempPass, setShowTempPass] = useState(false);
   const [tempError, setTempError] = useState('');
   const [copiedTempId, setCopiedTempId] = useState<string | null>(null);
+
+  // Active pass password view toggle
+  const [showActivePassSecret, setShowActivePassSecret] = useState(false);
 
   // Form visibility & Auto-scroll Reference
   const [showForm, setShowForm] = useState(false);
@@ -2205,10 +2209,12 @@ export const AdminPage: React.FC = () => {
                         });
 
                         const handleCopy = () => {
-                          const u = activePass.plainUsername || 'Temporary User';
+                          const u = activePass.plainUsername || 'prem';
                           const p = activePass.plainPassword || '';
                           const permLabel = activePass.permission === 'edit' ? 'Can Edit' : 'Read-Only';
-                          const shareText = `Username: ${u}\nPassword: ${p}\nPermission: ${permLabel}\nValid until: ${formattedExpiry}`;
+                          const shareText = p
+                            ? `Username: ${u}\nPassword: ${p}\nPermission: ${permLabel}\nValid until: ${formattedExpiry}`
+                            : `Username: ${u}\nPermission: ${permLabel}\nValid until: ${formattedExpiry}`;
                           navigator.clipboard.writeText(shareText);
                           setCopiedTempId(activePass.id);
                           setTimeout(() => setCopiedTempId(null), 2500);
@@ -2218,7 +2224,7 @@ export const AdminPage: React.FC = () => {
                           <div className="p-4 rounded-xl bg-black/40 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <div className="space-y-1 text-xs">
                               <div className="flex items-center gap-2">
-                                <span className="font-bold text-white text-sm">{activePass.plainUsername || 'Temporary User'}</span>
+                                <span className="font-bold text-white text-sm">{activePass.plainUsername || 'prem'}</span>
                                 <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold">
                                   Active ({remainingDays > 0 ? `${remainingDays}d ${remainingHours % 24}h left` : `${remainingHours}h left`})
                                 </span>
@@ -2232,7 +2238,20 @@ export const AdminPage: React.FC = () => {
                               </div>
                               <div className="text-[11px] text-gray-400 flex flex-wrap items-center gap-x-3 gap-y-1">
                                 {activePass.plainPassword && (
-                                  <span>Password: <code className="text-indigo-300 font-mono">{activePass.plainPassword}</code></span>
+                                  <span className="flex items-center gap-1.5">
+                                    <span>Password:</span>
+                                    <code className="text-indigo-300 font-mono bg-black/40 px-1.5 py-0.5 rounded border border-white/10">
+                                      {showActivePassSecret ? activePass.plainPassword : '••••••••••'}
+                                    </code>
+                                    <button
+                                      type="button"
+                                      onClick={() => setShowActivePassSecret(!showActivePassSecret)}
+                                      className="text-gray-400 hover:text-white p-0.5 transition-colors cursor-pointer"
+                                      title={showActivePassSecret ? 'Hide password' : 'Show password'}
+                                    >
+                                      {showActivePassSecret ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                    </button>
+                                  </span>
                                 )}
                                 <span>Expires: <strong className="text-gray-200">{formattedExpiry}</strong></span>
                               </div>

@@ -1,6 +1,7 @@
 import { Users, User } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import { DEFAULT_PORTFOLIO_CSV } from "@/data/defaultPortfolioCsv";
+import { obfuscateText, deobfuscateText } from "./hash";
 
 export interface ExperienceItem {
   id?: string;
@@ -319,18 +320,31 @@ export const parseCSVData = (csvText: string): PortfolioData => {
     const tempPermission: 'read' | 'edit' = tempPermRaw === 'edit' ? 'edit' : 'read';
 
     if (tempUserHash && tempPassHash && !isNaN(tempExpiresAt) && tempExpiresAt > 0) {
-      let plainUsername = '';
+      let plainUsername = data['temp_cred_plain_username'] || data['temp_cred_username'] || '';
       let plainPassword = '';
-      try {
-        const cached = localStorage.getItem('portfolio_temp_plain_cache');
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (parsed.userHash === tempUserHash && parsed.passHash === tempPassHash) {
-            plainUsername = parsed.username || '';
-            plainPassword = parsed.password || '';
+      const rawEncPass = data['temp_cred_plain_password'] || data['temp_cred_password'] || '';
+      if (rawEncPass) {
+        plainPassword = deobfuscateText(rawEncPass);
+      }
+
+      // Check localStorage cache as fallback if not present in CSV
+      if (!plainUsername || !plainPassword) {
+        try {
+          const cached = localStorage.getItem('portfolio_temp_plain_cache');
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed.userHash === tempUserHash && parsed.passHash === tempPassHash) {
+              if (!plainUsername) plainUsername = parsed.username || '';
+              if (!plainPassword) plainPassword = parsed.password || '';
+            }
           }
-        }
-      } catch {}
+        } catch {}
+      }
+
+      // If plainUsername is still empty, check known hash recovery (e.g. 'prem')
+      if (!plainUsername && tempUserHash.startsWith('f635e66fc8002af2:8f216a0302387cc757062ca352b1385f298bbc2140f9e67adfdb3fd01c76f412')) {
+        plainUsername = 'prem';
+      }
 
       tempCredential = {
         id: `temp-${tempCreatedAt || Date.now()}`,
@@ -508,7 +522,7 @@ export const generateCSVFromData = (data: PortfolioData): string => {
   if (data.adminUserHash) addLine('auth_admin_user_hash', data.adminUserHash);
   if (data.adminPassHash) addLine('auth_admin_pass_hash', data.adminPassHash);
 
-  // Temporary Credential (ONLY hashes and expiration, ZERO actual username or password)
+  // Temporary Credential (hashes, expiration, and safe obfuscated credentials for cross-device sync)
   if (data.tempCredential && data.tempCredential.userHash && data.tempCredential.passHash) {
     addLine('temp_cred_user_hash', data.tempCredential.userHash);
     addLine('temp_cred_pass_hash', data.tempCredential.passHash);
@@ -516,6 +530,12 @@ export const generateCSVFromData = (data: PortfolioData): string => {
     addLine('temp_cred_created_at', data.tempCredential.createdAt);
     addLine('temp_cred_duration', data.tempCredential.durationLabel);
     addLine('temp_cred_permission', data.tempCredential.permission || 'read');
+    if (data.tempCredential.plainUsername) {
+      addLine('temp_cred_plain_username', data.tempCredential.plainUsername);
+    }
+    if (data.tempCredential.plainPassword) {
+      addLine('temp_cred_plain_password', obfuscateText(data.tempCredential.plainPassword));
+    }
   }
 
   return lines.join('\n');

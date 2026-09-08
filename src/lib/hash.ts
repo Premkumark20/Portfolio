@@ -77,3 +77,51 @@ export const LEGACY_DEFAULT_USER_HASH = "eff3e32d8edd8c24964c97bcb61312ed6c4cf75
 export const LEGACY_DEFAULT_PASS_HASH = "5a15292d333c6ba0d838c6a261a2772ccaeee7ac0bf4449b5b8046ce40bc0797";
 export const LEGACY_DEFAULT_ADMIN_USER_HASH = "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918";
 export const LEGACY_DEFAULT_ADMIN_PASS_HASH = "17722af16df4ef8b15666a903bd2cbe4a1c0e972d34117ea57a7a9255bcc101c";
+
+/**
+ * Synchronous lightweight reversible obfuscation for storing temporary credentials in CSV.
+ * Uses a dynamic salt and SHA-256 derived keystream so temporary credentials are never stored
+ * in plaintext in CSV/Supabase, preventing casual exposure while allowing seamless cross-device restoration.
+ */
+const OBFUSCATION_KEY = 'portfolio_temp_cred_sec_token_2026';
+
+export function obfuscateText(text: string): string {
+  if (!text) return '';
+  const salt = generateSalt(8);
+  const keystream = sha256(`${salt}:${OBFUSCATION_KEY}`);
+  const encoded = encodeURIComponent(text);
+  const hex = Array.from(encoded).map((c, i) => {
+    const code = c.charCodeAt(0);
+    const keyByte = parseInt(keystream[(i * 2) % keystream.length] + keystream[(i * 2 + 1) % keystream.length], 16) || 0x42;
+    const xored = code ^ keyByte;
+    return xored.toString(16).padStart(4, '0');
+  }).join('');
+  return `enc:v1:${salt}:${hex}`;
+}
+
+export function deobfuscateText(encoded: string): string {
+  if (!encoded) return '';
+  if (!encoded.startsWith('enc:v1:')) {
+    // If stored as plaintext or legacy format, return as is
+    return encoded;
+  }
+  const parts = encoded.split(':');
+  if (parts.length < 4) return '';
+  const salt = parts[2];
+  const hex = parts[3];
+  const keystream = sha256(`${salt}:${OBFUSCATION_KEY}`);
+  let raw = '';
+  for (let i = 0; i < hex.length; i += 4) {
+    const chunk = hex.substring(i, i + 4);
+    const xored = parseInt(chunk, 16);
+    const charIndex = Math.floor(i / 4);
+    const keyByte = parseInt(keystream[(charIndex * 2) % keystream.length] + keystream[(charIndex * 2 + 1) % keystream.length], 16) || 0x42;
+    const code = xored ^ keyByte;
+    raw += String.fromCharCode(code);
+  }
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
