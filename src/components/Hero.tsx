@@ -5,7 +5,7 @@ import { Download, Eye, Briefcase, Mail, ShieldCheck, Code, Sparkles, Terminal }
 import profileImage from "@/assets/profile.jpg";
 import { fetchPortfolioData, PortfolioData } from "@/lib/csvData";
 import { usePortfolio } from "@/context/PortfolioContext";
-import { getAssetUrl } from "@/lib/utils";
+import { capitalizeWords, getAssetUrl } from "@/lib/utils";
 
 const Hero: React.FC = () => {
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
@@ -147,7 +147,7 @@ const Hero: React.FC = () => {
                 <span className="relative inline-flex rounded-full h-2 w-2 sm:h-3 sm:w-3 bg-emerald-500"></span>
               </span>
               <span className="text-[10px] sm:text-xs font-semibold text-emerald-300 tracking-wide">
-                {statusBadge}
+                {capitalizeWords(statusBadge)}
               </span>
             </div>
 
@@ -157,11 +157,11 @@ const Hero: React.FC = () => {
                 Hi, I'm
               </div>
               <h1 className="text-3xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white leading-tight">
-                {name}
+                {capitalizeWords(name)}
               </h1>
               <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 pt-0.5">
                 <span className="text-base sm:text-2xl font-bold text-gradient-purple">
-                  {title}
+                  {capitalizeWords(title)}
                 </span>
                 <span className="text-gray-500 hidden sm:inline">•</span>
                 <div className="flex flex-wrap gap-1.5 justify-center">
@@ -170,7 +170,7 @@ const Hero: React.FC = () => {
                       key={tech}
                       className="px-2 py-0.5 rounded-md text-[9px] sm:text-xs font-mono font-medium bg-blue-500/10 text-blue-300 border border-blue-500/20"
                     >
-                      {tech}
+                      {capitalizeWords(tech)}
                     </span>
                   ))}
                 </div>

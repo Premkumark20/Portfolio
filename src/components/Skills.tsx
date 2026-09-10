@@ -4,6 +4,7 @@ import { Terminal, Layout, Server, Database, Wrench } from "lucide-react";
 import { TiltCard } from "@/components/ui/TiltCard";
 import { fetchPortfolioData } from "@/lib/csvData";
 import { usePortfolio } from "@/context/PortfolioContext";
+import { capitalizeWords } from "@/lib/utils";
 
 interface SkillCategory {
   title: string;
@@ -87,7 +88,7 @@ const Skills: React.FC = () => {
                         </div>
                         <div>
                           <h3 className="text-sm md:text-lg font-bold text-white group-hover:text-cyan-300 transition-colors">
-                            {cat.title}
+                        {cat.title && capitalizeWords(cat.title)}
                           </h3>
                         </div>
                       </div>
@@ -99,7 +100,7 @@ const Skills: React.FC = () => {
                             key={skill}
                             className="px-2 py-1 md:px-3.5 md:py-1.5 rounded-xl bg-white/5 hover:bg-blue-600/20 text-[10px] md:text-xs font-semibold text-gray-200 hover:text-white border border-white/10 hover:border-blue-400/40 transition-all cursor-default"
                           >
-                            {skill}
+                            {capitalizeWords(skill)}
                           </span>
                         ))}
                       </div>

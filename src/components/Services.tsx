@@ -4,6 +4,7 @@ import { Code, Server, Cloud, CheckCircle2 } from "lucide-react";
 import { TiltCard } from "@/components/ui/TiltCard";
 import { fetchPortfolioData } from "@/lib/csvData";
 import { usePortfolio } from "@/context/PortfolioContext";
+import { capitalizeWords } from "@/lib/utils";
 
 const defaultIcons = [Code, Server, Cloud];
 const defaultGradients = [
@@ -73,7 +74,7 @@ const Services: React.FC = () => {
                         <Icon className="w-4.5 h-4.5 md:w-6 md:h-6 text-white" />
                       </div>
                       <h3 className="text-base md:text-xl font-bold text-white group-hover:text-cyan-300 transition-colors leading-snug">
-                        {domain.domain}
+                        {capitalizeWords(domain.domain)}
                       </h3>
                     </div>
 
@@ -87,7 +88,7 @@ const Services: React.FC = () => {
                       {domain.offerings.map((item, i) => (
                         <div key={i} className="flex items-start gap-2 text-xs text-gray-300">
                           <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0 mt-0.5" />
-                          <span>{item}</span>
+                          <span>{capitalizeWords(item)}</span>
                         </div>
                       ))}
                     </div>

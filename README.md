@@ -29,25 +29,39 @@ I am a **Full Stack Developer** and Computer Science & Engineering undergraduate
 
 ## ✨ Key Technical Features & Architectural Highlights
 
-### 🛡️ 1. Admin Panel with Cross-Device Cloud Sync
-- **Password-Protected Admin Dashboard**: Secure login with environment-variable-based credentials.
+### 🛡️ 1. Admin Panel with Cross-Device Cloud Sync & Tab Persistence
+- **Password-Protected Admin Dashboard**: Secure login with environment-variable-based credentials or custom database credentials.
 - **Supabase Real-Time Sync**: All edits (CRUD + reordering) are instantly saved to **Supabase PostgreSQL** and reflected across all devices (mobile, laptop, other browsers) without redeployment.
-- **Full CRUD + Ordering**: Create, update, delete, and drag-to-reorder for all 7 sections — Experiences, Projects, Education, Services, Skills, Certifications, and Stats.
-- **CSV Persistence**: Portfolio data is generated as CSV, stored in Supabase, and served on load with sequential `order` indices for deterministic sorting.
+- **Full CRUD + Reordering**: Create, update, delete, and drag-to-reorder across all sections — Personal Info, Resumes, Experiences, Projects, Education, Services, Skills, Certifications, and Stats.
+- **Tab Persistence**: Preserves active admin sections across refreshes via `sessionStorage` and URL hash fragments while defaulting to `Personal & Bio` on login.
 
-### 🕹️ 2. Interactive 3D Spatial Tilt Physics (`<TiltCard>`)
+### 🔤 2. Smart Global Auto-Capitalization System (`capitalizeWords`)
+- **Intelligent Title Casing**: Automatically formats text across all Admin input fields, CRUD context methods, CSV parsing, and portfolio rendering.
+- **Tech Stack Dictionary**: Preserves custom casing for technology terms and acronyms (`HTML`, `CSS`, `JavaScript`, `TypeScript`, `TailwindCSS`, `React`, `FastAPI`, `Flask`, `PostgreSQL`, `Docker`, `SQL`, `API`, `UI/UX`, `SIH`, `SRM`, etc).
+
+### 💼 3. Interactive Work Experience Section & Detail Modals
+- **Responsive 3-Column Grid**: Styled with interactive 3D `TiltCard` components matching section layout aesthetics.
+- **Clickable Experience Cards**: Card clicks launch a responsive lightbox modal (via React `createPortal`) presenting full role duties, dates, location, and technology tags.
+- **Expandable Toggle**: Includes a "View All Experiences" button for smooth list expansion.
+
+### 🚀 4. Project Showcase & Live Demo Links
+- **Live Demo Integration**: Added `liveUrl` support to render a prominent `Live Demo ↗` button on both project cards and detail modals alongside GitHub repository links.
+- **Category Badges & Tech Stack Tags**: Standardized progress indicators and tech stack tags.
+
+### 🕹️ 5. Interactive 3D Spatial Tilt Physics (`<TiltCard>`)
 - **Real-time Cursor Tracking**: Cards dynamically rotate along spatial X and Y axes (`rotateX`, `rotateY`) based on cursor offsets relative to element centers.
 - **Z-Axis Elevation**: Lifts cards into 3D space (`translateZ(10px) scale(1.015)`) on hover.
 - **Smooth Viewport Entries**: High-precision 3D entry transitions (`transformPerspective: 1000`, custom `cubic-bezier` easing) trigger smoothly on scroll.
 
-### 📄 3. Client-Side PDF Canvas Viewer (PDF.js)
+### 📄 6. Client-Side PDF Canvas Viewer (PDF.js) & Physical Resume Management
 - **Inline Certificate Previews**: Uses Mozilla's `pdfjs-dist` to fetch and render PDF certificates client-side directly on HTML5 `<canvas>` elements.
-- **Cross-Browser & Mobile Support**: Completely bypasses mobile browser fallback limitations, delivering smooth on-page previews.
+- **Physical Resume File Renaming**: Renames physical PDF files on disk (`/public/resume/` & `/dist/resume/`) via local server API while updating CSV metadata.
+- **Streamlined Edit UI**: Clean toggle UI in Admin with inline inputs, `Check` save buttons, and single `X` cancel controls.
 
-### 🌐 4. Stacking Context & Portal Overlays
-- **React Portals**: Modal overlays (Projects details and Certifications PDF viewer) are rendered directly to `document.body` via `createPortal`, completely avoiding CSS stacking context clipping bugs on scroll.
+### 🌐 7. Stacking Context & Portal Overlays
+- **React Portals**: Modal overlays (Projects detail lightbox, Experience detail modal, Certifications PDF viewer) are rendered directly to `document.body` via `createPortal`, avoiding CSS stacking context clipping.
 
-### 🎨 5. Fluid Organic Hero Design
+### 🎨 8. Fluid Organic Hero Design
 - **Morphing Profile Shape**: Blob-shaped portrait frame featuring continuous fluid `@keyframes morph` animations and flowing neon gradient borders.
 - **WebGL Particle Canvas**: Background powered by Three.js rendering thousands of animated dynamic nodes.
 
@@ -91,7 +105,7 @@ I am a **Full Stack Developer** and Computer Science & Engineering undergraduate
 - **Description**: Enterprise payroll system featuring Role-Based Access Control (RBAC), automated salary generation, and attendance management.
 - **Stack**: Python (Flask), SQLite, Role Security, PythonAnywhere
 - **GitHub**: [payroll-dbms](https://github.com/Premkumark20/payroll-dbms)
-- **Live Demo**: [https://premkumark20.pythonanywhere.com/](https://premkumark20.pythonanywhere.com/)
+- **Live Demo**: [https://premkumark20.github.io/payroll-dbms](https://premkumark20.github.io/payroll-dbms)
 
 ---
 
@@ -103,7 +117,7 @@ I am a **Full Stack Developer** and Computer Science & Engineering undergraduate
    cd Portfolio
    ```
 
-2. **Install dependencies** *(uses pnpm with shared store)*
+2. **Install dependencies** *(uses pnpm)*
    ```bash
    pnpm install
    ```
@@ -164,23 +178,23 @@ Access the full admin dashboard at `/admin` (opens in a new tab from the footer,
 
 ### Authentication & Access Control:
 - **Salted SHA-256 Cryptographic Hashes**: Passwords and temporary credentials use salted hashing (`salt:hash`), protecting against rainbow table and dictionary lookup attacks.
-- **Default Administrator**: `yourusername`/ `yourpassword` (Salt: `default_auth`).
-- **Master Recovery Fail-safe**: `youradmin` / `youradminpassword` (Salt: `master_recovery`) — always available for recovery if custom credentials are forgotten.
+- **Default Administrator**: `yourusername` / `yourpassword` (Salt: `default_auth`).
+- **Master Recovery Fail-safe**: `youradmin` / `youradminpassword` (Salt: `master_recovery`) — recovery access if custom credentials are forgotten.
 - **Custom Admin Credentials**: Change credentials at any time in the Security tab; synced to Supabase with dynamically generated cryptographic salts.
-- **Temporary Sharing Passes**: Generate time-bounded passes (1 hour to 30 days) with configurable permissions (**Read-Only** or **Can Edit**). Automatically revoked and logged out live upon expiration.
-- **Deletion Safeguards**: Center-screen confirmation modal container prevents accidental deletions across every section.
+- **Temporary Sharing Passes**: Generate time-bounded passes (1 hour to 30 days) with configurable permissions (**Read-Only** or **Can Edit**). Automatically revoked upon expiration.
+- **Deletion Safeguards**: Confirmation modals prevent accidental deletions across all sections.
 
 ### Features & Sections:
 | Section | Operations |
 | :--- | :--- |
-| Personal & Bio | Edit name, title, links, bio summary |
-| Resumes | Upload PDF/DOC files, set primary resume for download |
-| Projects | Add, edit, delete, drag-to-reorder |
-| Education | Add, edit, delete, drag-to-reorder, set category |
-| Work Experience | Add, edit, delete, drag-to-reorder |
-| Services | Add, edit, delete, drag-to-reorder |
+| Personal & Bio | Edit name, title, links, hero tags, bio summary (Auto Title Case) |
+| Resumes | Upload PDF/DOC files, set primary resume, rename files on physical disk |
+| Projects | Add, edit, delete, drag-to-reorder, add Live Demo URLs |
+| Education | Add, edit, delete, drag-to-reorder, set category badges |
+| Work Experience | Add, edit, delete, drag-to-reorder, clickable detail lightbox |
+| Services | Add, edit, delete, drag-to-reorder, tech stack tags |
 | Skills | Add categories & skills, drag-to-reorder |
-| Certifications | Add, upload PDF/image, drag-to-reorder |
+| Certifications | Add, upload PDF/image, drag-to-reorder, inline canvas preview |
 | Stats | Edit label, value, subtext, drag-to-reorder |
 | Security | Change admin credentials, generate/manage temporary passes, cloud backup |
 
@@ -193,8 +207,9 @@ All changes are **instantly synced to Supabase** and reflected on all devices.
 ```
 Portfolio/
 ├── public/
-│   └── data/
-│       └── portfolio.csv            # Static fallback CSV data
+│   ├── data/
+│   │   └── portfolio.csv            # Static fallback CSV data
+│   └── resume/                      # Uploaded resume PDF files
 ├── src/
 │   ├── components/
 │   │   ├── admin/
@@ -206,9 +221,10 @@ Portfolio/
 │   │   ├── Certifications.tsx       # PDF.js inline viewer & cert lightbox
 │   │   ├── Contact.tsx              # Contact form & social channels
 │   │   ├── Education.tsx            # 3D timeline qualifications
+│   │   ├── Experience.tsx           # Clickable 3D cards & detail lightbox
 │   │   ├── Footer.tsx               # Footer with centered copyright
 │   │   ├── Hero.tsx                 # Morphing profile & quick actions
-│   │   ├── Projects.tsx             # Project detail modals & progress bars
+│   │   ├── Projects.tsx             # Project detail modals & Live Demo links
 │   │   ├── Services.tsx             # Engineering domain capabilities
 │   │   ├── Skills.tsx               # Technical competencies grid
 │   │   └── ThreeBackground.tsx      # WebGL particle background
@@ -216,6 +232,7 @@ Portfolio/
 │   │   └── PortfolioContext.tsx      # Global state, CRUD, Supabase sync
 │   ├── lib/
 │   │   ├── csvData.ts               # CSV parse, generate, Supabase fetch/save
+│   │   ├── utils.ts                 # capitalizeWords & getAssetUrl helpers
 │   │   └── supabaseClient.ts        # Supabase client initialization
 │   ├── pages/
 │   │   ├── AdminPage.tsx            # Full admin dashboard page (/admin)
@@ -223,9 +240,6 @@ Portfolio/
 │   ├── App.tsx                      # React router & global context
 │   ├── index.css                    # Custom keyframes & styling rules
 │   └── main.tsx                     # DOM root entry
-├── netlify/
-│   └── functions/
-│       └── portfolio-data.js        # Netlify serverless function
 ├── .env                             # Environment variables (not committed)
 ├── index.html                       # Favicon & SEO metadata
 ├── tailwind.config.ts

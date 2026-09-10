@@ -27,6 +27,7 @@ import {
 } from '@/lib/hash';
 import { supabase } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
+import { capitalizeWords } from '@/lib/utils';
 
 interface PortfolioContextType {
   data: PortfolioData | null;
@@ -46,6 +47,7 @@ interface PortfolioContextType {
   updatePersonalInfo: (fields: Partial<PortfolioData>) => void;
   // Resumes CRUD
   addResume: (resume: ResumeItem) => void;
+  renameResume: (id: string, newTitle: string) => void;
   deleteResume: (id: string) => void;
   setPrimaryResume: (id: string) => void;
   // Experience CRUD & Reorder
@@ -692,10 +694,70 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return true;
   };
 
+  const formatPersonalInfo = (fields: Partial<PortfolioData>): Partial<PortfolioData> => {
+    const formatted = { ...fields };
+    if (formatted.name) formatted.name = capitalizeWords(formatted.name);
+    if (formatted.title) formatted.title = capitalizeWords(formatted.title);
+    if (formatted.specialization) formatted.specialization = capitalizeWords(formatted.specialization);
+    if (formatted.statusBadge) formatted.statusBadge = capitalizeWords(formatted.statusBadge);
+    if (formatted.education) formatted.education = capitalizeWords(formatted.education);
+    if (formatted.address) formatted.address = capitalizeWords(formatted.address);
+    if (formatted.heroTags) formatted.heroTags = formatted.heroTags.map(t => capitalizeWords(t));
+    return formatted;
+  };
+
+  const formatProject = (proj: PortfolioData['projects'][0]): PortfolioData['projects'][0] => ({
+    ...proj,
+    title: capitalizeWords(proj.title),
+    category: proj.category ? capitalizeWords(proj.category) : '',
+    type: proj.type ? capitalizeWords(proj.type) : '',
+    duration: proj.duration ? capitalizeWords(proj.duration) : '',
+    tech: (proj.tech || []).map(t => capitalizeWords(t)),
+  });
+
+  const formatEducation = (edu: PortfolioData['educationList'][0]): PortfolioData['educationList'][0] => ({
+    ...edu,
+    type: edu.type ? capitalizeWords(edu.type) : '',
+    institution: capitalizeWords(edu.institution),
+    degree: capitalizeWords(edu.degree),
+    location: edu.location ? capitalizeWords(edu.location) : '',
+    specialization: edu.specialization ? capitalizeWords(edu.specialization) : '',
+    period: edu.period ? capitalizeWords(edu.period) : '',
+    score: edu.score ? capitalizeWords(edu.score) : '',
+    statusBadge: edu.statusBadge ? capitalizeWords(edu.statusBadge) : '',
+  });
+
+  const formatService = (srv: PortfolioData['servicesList'][0]): PortfolioData['servicesList'][0] => ({
+    ...srv,
+    title: capitalizeWords(srv.title),
+    tech: (srv.tech || []).map(t => capitalizeWords(t)),
+  });
+
+  const formatSkillCategory = (sk: PortfolioData['skillsList'][0]): PortfolioData['skillsList'][0] => ({
+    ...sk,
+    category: sk.category ? capitalizeWords(sk.category) : '',
+    skills: (sk.skills || []).map(t => capitalizeWords(t)),
+  });
+
+  const formatCertification = (cert: PortfolioData['certifications'][0]): PortfolioData['certifications'][0] => ({
+    ...cert,
+    title: capitalizeWords(cert.title),
+    provider: cert.provider ? capitalizeWords(cert.provider) : '',
+    level: cert.level ? capitalizeWords(cert.level) : '',
+    date: cert.date ? capitalizeWords(cert.date) : '',
+  });
+
+  const formatStat = (st: PortfolioData['statsList'][0]): PortfolioData['statsList'][0] => ({
+    ...st,
+    label: capitalizeWords(st.label),
+    subtext: st.subtext ? capitalizeWords(st.subtext) : '',
+  });
+
   const updatePersonalInfo = (fields: Partial<PortfolioData>) => {
     if (!checkCanEdit()) return;
     if (!data) return;
-    const updated = { ...data, ...fields };
+    const formatted = formatPersonalInfo(fields);
+    const updated = { ...data, ...formatted };
     saveAndSync(updated);
     toast.success('Personal information updated!');
   };
@@ -704,7 +766,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const addResume = async (resume: ResumeItem) => {
     if (!checkCanEdit()) return;
     if (!data) return;
-    let finalResume = { ...resume };
+    let finalResume = { ...resume, name: capitalizeWords(resume.name) };
 
     if (resume.fileData && resume.fileData.startsWith('data:')) {
       try {
@@ -734,6 +796,61 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     updatedResumes.unshift({ ...finalResume, isPrimary });
     saveAndSync({ ...data, resumes: updatedResumes });
     toast.success('Resume uploaded successfully!');
+  };
+
+  const renameResume = async (id: string, newTitle: string) => {
+    if (!checkCanEdit()) return;
+    if (!data) return;
+    const cleanTitle = capitalizeWords(newTitle.trim());
+    if (!cleanTitle) {
+      toast.error('Resume title cannot be empty!');
+      return;
+    }
+
+    const existing = data.resumes || [];
+    const target = existing.find(r => r.id === id);
+    if (!target) return;
+
+    let updatedFileData = target.fileData;
+
+    if (target.fileData && target.fileData.startsWith('/resume/')) {
+      const oldFileName = target.fileData.replace('/resume/', '');
+      const ext = oldFileName.includes('.') ? oldFileName.split('.').pop() : 'pdf';
+      const cleanNewBase = cleanTitle.replace(/[^a-zA-Z0-9_.-]/g, '_');
+      const newFileName = cleanNewBase.endsWith(`.${ext}`) ? cleanNewBase : `${cleanNewBase}.${ext}`;
+
+      if (oldFileName !== newFileName) {
+        try {
+          const res = await fetch('/api/resume/rename', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ oldFileName, newFileName }),
+          });
+          if (res.ok) {
+            const json = await res.json();
+            if (json.newPath) {
+              updatedFileData = json.newPath;
+            }
+          }
+        } catch (err) {
+          console.warn('Backend resume rename warning:', err);
+        }
+      }
+    }
+
+    const list = existing.map(r => {
+      if (r.id === id) {
+        return {
+          ...r,
+          name: cleanTitle,
+          fileData: updatedFileData,
+        };
+      }
+      return r;
+    });
+
+    saveAndSync({ ...data, resumes: list });
+    toast.success('Resume renamed successfully!');
   };
 
   const deleteResume = async (id: string) => {
@@ -776,10 +893,20 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   // Experience CRUD & Reorder
+  const formatExp = (exp: ExperienceItem): ExperienceItem => ({
+    ...exp,
+    role: capitalizeWords(exp.role),
+    company: capitalizeWords(exp.company),
+    location: exp.location ? capitalizeWords(exp.location) : '',
+    duration: exp.duration ? capitalizeWords(exp.duration) : '',
+    tags: (exp.tags || []).map(t => capitalizeWords(t)),
+  });
+
   const addExperience = (exp: ExperienceItem) => {
     if (!checkCanEdit()) return;
     if (!data) return;
-    const updated = { ...data, experiences: withOrder([exp, ...(data.experiences || [])]) };
+    const formatted = formatExp(exp);
+    const updated = { ...data, experiences: withOrder([formatted, ...(data.experiences || [])]) };
     saveAndSync(updated);
     toast.success('Experience added!');
   };
@@ -788,7 +915,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!checkCanEdit()) return;
     if (!data) return;
     const list = [...(data.experiences || [])];
-    list[index] = exp;
+    list[index] = formatExp(exp);
     const updated = { ...data, experiences: withOrder(list) };
     saveAndSync(updated);
     toast.success('Experience updated!');
@@ -823,7 +950,8 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const addProject = (proj: PortfolioData['projects'][0]) => {
     if (!checkCanEdit()) return;
     if (!data) return;
-    const updated = { ...data, projects: withOrder([proj, ...(data.projects || [])]) };
+    const formatted = formatProject(proj);
+    const updated = { ...data, projects: withOrder([formatted, ...(data.projects || [])]) };
     saveAndSync(updated);
     toast.success('Project added!');
   };
@@ -832,7 +960,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!checkCanEdit()) return;
     if (!data) return;
     const list = [...(data.projects || [])];
-    list[index] = proj;
+    list[index] = formatProject(proj);
     const updated = { ...data, projects: withOrder(list) };
     saveAndSync(updated);
     toast.success('Project updated!');
@@ -867,7 +995,8 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const addEducation = (edu: PortfolioData['educationList'][0]) => {
     if (!checkCanEdit()) return;
     if (!data) return;
-    const updated = { ...data, educationList: withOrder([edu, ...(data.educationList || [])]) };
+    const formatted = formatEducation(edu);
+    const updated = { ...data, educationList: withOrder([formatted, ...(data.educationList || [])]) };
     saveAndSync(updated);
     toast.success('Education entry added!');
   };
@@ -876,7 +1005,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!checkCanEdit()) return;
     if (!data) return;
     const list = [...(data.educationList || [])];
-    list[index] = edu;
+    list[index] = formatEducation(edu);
     const updated = { ...data, educationList: withOrder(list) };
     saveAndSync(updated);
     toast.success('Education entry updated!');
@@ -911,7 +1040,8 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const addService = (srv: PortfolioData['servicesList'][0]) => {
     if (!checkCanEdit()) return;
     if (!data) return;
-    const updated = { ...data, servicesList: withOrder([srv, ...(data.servicesList || [])]) };
+    const formatted = formatService(srv);
+    const updated = { ...data, servicesList: withOrder([formatted, ...(data.servicesList || [])]) };
     saveAndSync(updated);
     toast.success('Service added!');
   };
@@ -920,7 +1050,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!checkCanEdit()) return;
     if (!data) return;
     const list = [...(data.servicesList || [])];
-    list[index] = srv;
+    list[index] = formatService(srv);
     const updated = { ...data, servicesList: withOrder(list) };
     saveAndSync(updated);
     toast.success('Service updated!');
@@ -955,7 +1085,8 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const addSkillCategory = (sk: PortfolioData['skillsList'][0]) => {
     if (!checkCanEdit()) return;
     if (!data) return;
-    const updated = { ...data, skillsList: withOrder([...(data.skillsList || []), sk]) };
+    const formatted = formatSkillCategory(sk);
+    const updated = { ...data, skillsList: withOrder([...(data.skillsList || []), formatted]) };
     saveAndSync(updated);
     toast.success('Skill category added!');
   };
@@ -964,7 +1095,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!checkCanEdit()) return;
     if (!data) return;
     const list = [...(data.skillsList || [])];
-    list[index] = sk;
+    list[index] = formatSkillCategory(sk);
     const updated = { ...data, skillsList: withOrder(list) };
     saveAndSync(updated);
     toast.success('Skill category updated!');
@@ -999,7 +1130,8 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const addCertification = (cert: PortfolioData['certifications'][0]) => {
     if (!checkCanEdit()) return;
     if (!data) return;
-    const updated = { ...data, certifications: withOrder([cert, ...(data.certifications || [])]) };
+    const formatted = formatCertification(cert);
+    const updated = { ...data, certifications: withOrder([formatted, ...(data.certifications || [])]) };
     saveAndSync(updated);
     toast.success('Certification added!');
   };
@@ -1008,7 +1140,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!checkCanEdit()) return;
     if (!data) return;
     const list = [...(data.certifications || [])];
-    list[index] = cert;
+    list[index] = formatCertification(cert);
     const updated = { ...data, certifications: withOrder(list) };
     saveAndSync(updated);
     toast.success('Certification updated!');
@@ -1043,7 +1175,8 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const updateStats = (stats: PortfolioData['statsList']) => {
     if (!checkCanEdit()) return;
     if (!data) return;
-    const updated = { ...data, statsList: withOrder(stats) };
+    const formattedList = stats.map(formatStat);
+    const updated = { ...data, statsList: withOrder(formattedList) };
     saveAndSync(updated);
     toast.success('Statistics updated!');
   };
@@ -1156,6 +1289,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         deleteTempCredential,
         updatePersonalInfo,
         addResume,
+        renameResume,
         deleteResume,
         setPrimaryResume,
         addExperience,

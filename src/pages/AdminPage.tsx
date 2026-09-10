@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { usePortfolio } from '@/context/PortfolioContext';
 import { ExperienceItem, PortfolioData, ResumeItem } from '@/lib/csvData';
-import { getAssetUrl } from '@/lib/utils';
+import { getAssetUrl, capitalizeWords } from '@/lib/utils';
 
 export const AdminPage: React.FC = () => {
   useEffect(() => {
@@ -29,6 +29,7 @@ export const AdminPage: React.FC = () => {
     deleteTempCredential,
     updatePersonalInfo,
     addResume,
+    renameResume,
     deleteResume,
     setPrimaryResume,
     addExperience,
@@ -65,7 +66,15 @@ export const AdminPage: React.FC = () => {
   type AdminTabId = 'personal' | 'resumes' | 'projects' | 'education' | 'experience' | 'services' | 'skills' | 'certifications' | 'stats' | 'security';
   const validTabs: AdminTabId[] = ['personal', 'resumes', 'projects', 'education', 'experience', 'services', 'skills', 'certifications', 'stats', 'security'];
 
-  const [activeTab, setActiveTab] = useState<AdminTabId>('personal');
+  const [activeTab, setActiveTab] = useState<AdminTabId>(() => {
+    try {
+      const hash = window.location.hash.replace('#', '') as AdminTabId;
+      if (hash && validTabs.includes(hash)) return hash;
+      const saved = sessionStorage.getItem('portfolio_admin_active_tab') as AdminTabId;
+      if (saved && validTabs.includes(saved)) return saved;
+    } catch {}
+    return 'personal';
+  });
 
   const [securitySubSection, setSecuritySubSection] = useState<'security' | 'temporary' | 'backup'>(() => {
     try {
@@ -196,6 +205,8 @@ export const AdminPage: React.FC = () => {
   const [resumeFileContent, setResumeFileContent] = useState('');
   const [resumeFileName, setResumeFileName] = useState('');
   const [isResumePrimary, setIsResumePrimary] = useState(true);
+  const [editingResumeId, setEditingResumeId] = useState<string | null>(null);
+  const [editResumeNameInput, setEditResumeNameInput] = useState('');
 
   // Personal Info Form State
   const [personalForm, setPersonalForm] = useState({
@@ -232,13 +243,17 @@ export const AdminPage: React.FC = () => {
   const handleSavePersonalInfo = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const heroTags = personalForm.heroTagsInput
-      ? personalForm.heroTagsInput.split(',').map(t => t.trim()).filter(Boolean)
+      ? personalForm.heroTagsInput.split(',').map(t => capitalizeWords(t.trim())).filter(Boolean)
       : [];
+    const nameCap = capitalizeWords(personalForm.name);
+    const titleCap = capitalizeWords(personalForm.title);
+    const specCap = capitalizeWords(personalForm.specialization);
+    const badgeCap = capitalizeWords(personalForm.statusBadge);
     updatePersonalInfo({
-      name: personalForm.name,
-      title: personalForm.title,
-      specialization: personalForm.specialization,
-      statusBadge: personalForm.statusBadge,
+      name: nameCap,
+      title: titleCap,
+      specialization: specCap,
+      statusBadge: badgeCap,
       email: personalForm.email,
       phone: personalForm.phone,
       github_link: personalForm.github_link,
@@ -246,6 +261,14 @@ export const AdminPage: React.FC = () => {
       heroTags,
       bioSummary: personalForm.bioSummary,
     });
+    setPersonalForm(prev => ({
+      ...prev,
+      name: nameCap,
+      title: titleCap,
+      specialization: specCap,
+      statusBadge: badgeCap,
+      heroTagsInput: heroTags.join(', '),
+    }));
     setPersonalSaved(true);
     setTimeout(() => setPersonalSaved(false), 3000);
   };
@@ -261,7 +284,13 @@ export const AdminPage: React.FC = () => {
   }, [data?.statsList]);
 
   const handleSaveStats = () => {
-    updateStats(statsForm);
+    const formattedStats = statsForm.map(s => ({
+      ...s,
+      label: capitalizeWords(s.label),
+      subtext: s.subtext ? capitalizeWords(s.subtext) : '',
+    }));
+    setStatsForm(formattedStats);
+    updateStats(formattedStats);
     setStatsSaved(true);
     setTimeout(() => setStatsSaved(false), 3000);
   };
@@ -313,6 +342,12 @@ export const AdminPage: React.FC = () => {
       setAuthPassword('');
       setAuthError('');
       setShowAuthPassword(false);
+      // When logging in to admin, always open in Personal & Bio section
+      setActiveTab('personal');
+      try {
+        sessionStorage.setItem('portfolio_admin_active_tab', 'personal');
+        window.history.replaceState(null, '', '#personal');
+      } catch {}
     } else {
       setAuthError('Invalid administrator credentials or expired temporary pass.');
     }
@@ -892,27 +927,62 @@ export const AdminPage: React.FC = () => {
                       res.isPrimary ? 'bg-blue-600/15 border-blue-500/50 shadow-lg shadow-blue-500/10' : 'bg-white/5 border-white/10'
                     }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2.5 rounded-xl ${res.isPrimary ? 'bg-blue-600 text-white' : 'bg-white/10 text-gray-400'}`}>
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className={`p-2.5 rounded-xl shrink-0 ${res.isPrimary ? 'bg-blue-600 text-white' : 'bg-white/10 text-gray-400'}`}>
                         <FileText className="w-5 h-5" />
                       </div>
-                      <div>
-                        <div className="font-bold text-white text-sm flex items-center gap-2">
-                          <span>{res.name}</span>
-                          {res.isPrimary && (
-                            <span className="px-2 py-0.5 rounded-full bg-blue-500/30 text-blue-300 border border-blue-400/40 text-[10px] font-bold flex items-center gap-1">
-                              <Star className="w-3 h-3 fill-blue-300 text-blue-300" />
-                              <span>Primary Resume</span>
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs text-gray-400 mt-0.5">
-                          Uploaded: {res.uploadDate}
-                        </div>
+                      <div className="flex-1 min-w-0">
+                        {editingResumeId === res.id ? (
+                          <div className="flex items-center gap-2 my-1">
+                            <input
+                              type="text"
+                              value={editResumeNameInput}
+                              onChange={(e) => setEditResumeNameInput(e.target.value)}
+                              className="px-3 py-1.5 rounded-lg bg-black/60 border border-blue-500 text-white text-xs font-semibold focus:outline-none flex-1"
+                              autoFocus
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (editResumeNameInput.trim()) {
+                                  renameResume(res.id, editResumeNameInput);
+                                  setEditingResumeId(null);
+                                }
+                              }}
+                              className="p-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-all"
+                              title="Save New Name"
+                            >
+                              <Check className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingResumeId(null)}
+                              className="p-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 transition-all"
+                              title="Cancel"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="font-bold text-white text-sm flex items-center gap-2 flex-wrap">
+                              <span className="truncate">{res.name}</span>
+                              {res.isPrimary && (
+                                <span className="px-2 py-0.5 rounded-full bg-blue-500/30 text-blue-300 border border-blue-400/40 text-[10px] font-bold flex items-center gap-1 shrink-0">
+                                  <Star className="w-3 h-3 fill-blue-300 text-blue-300" />
+                                  <span>Primary Resume</span>
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-400 mt-0.5">
+                              Uploaded: {res.uploadDate}
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                    <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
                       {/* View Resume Icon Button */}
                       <a
                         href={getAssetUrl(res.fileData)}
@@ -923,6 +993,21 @@ export const AdminPage: React.FC = () => {
                       >
                         <Eye className="w-4 h-4" />
                       </a>
+
+                      {/* Edit / Rename Resume Icon Button (Hidden when editing this card) */}
+                      {canEdit && editingResumeId !== res.id && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingResumeId(res.id);
+                            setEditResumeNameInput(res.name);
+                          }}
+                          className="p-2.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 text-purple-300 transition-all flex items-center justify-center cursor-pointer"
+                          title="Rename Resume (Updates file on disk & CSV)"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                      )}
 
                       {/* Set Primary Resume Icon Button */}
                       {canEdit && (
@@ -937,7 +1022,7 @@ export const AdminPage: React.FC = () => {
                         ) : (
                           <button
                             onClick={() => setPrimaryResume(res.id)}
-                            className="p-2.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/40 text-blue-300 transition-all flex items-center justify-center"
+                            className="p-2.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/40 text-blue-300 transition-all flex items-center justify-center cursor-pointer"
                             title="Set as Primary Resume"
                           >
                             <Star className="w-4 h-4" />
@@ -986,7 +1071,7 @@ export const AdminPage: React.FC = () => {
               <div>
                 <h2 className="text-xl font-bold text-white flex items-center gap-2">
                   <Code2 className="w-5 h-5 text-blue-400" />
-                  <span>Projects Management & Drag Arrangement</span>
+                  <span>Projects Management</span>
                 </h2>
                 <p className="text-xs text-gray-400 mt-1">Drag cards using the 3-line handle to rearrange display order.</p>
               </div>
@@ -1111,9 +1196,19 @@ export const AdminPage: React.FC = () => {
                   <button
                     onClick={() => {
                       if (!projForm.title) return;
-                      const techList = (projForm.techInput ?? projForm.tech.join(', ')).split(',').map(t => t.trim()).filter(Boolean);
+                      const techList = (projForm.techInput ?? projForm.tech.join(', '))
+                        .split(',')
+                        .map(t => capitalizeWords(t.trim()))
+                        .filter(Boolean);
                       const { techInput, ...projToSave } = projForm;
-                      const finalProj = { ...projToSave, tech: techList };
+                      const finalProj = {
+                        ...projToSave,
+                        title: capitalizeWords(projToSave.title),
+                        category: projToSave.category ? capitalizeWords(projToSave.category) : '',
+                        type: projToSave.type ? capitalizeWords(projToSave.type) : '',
+                        duration: projToSave.duration ? capitalizeWords(projToSave.duration) : '',
+                        tech: techList,
+                      };
                       if (editingProjIdx !== null) {
                         updateProject(editingProjIdx, finalProj);
                         setEditingProjIdx(null);
@@ -1173,7 +1268,15 @@ export const AdminPage: React.FC = () => {
                       <button
                         onClick={() => {
                           setEditingProjIdx(idx);
-                          setProjForm({ ...proj, techInput: proj.tech ? proj.tech.join(', ') : '' });
+                          setProjForm({
+                            ...proj,
+                            title: capitalizeWords(proj.title),
+                            category: proj.category ? capitalizeWords(proj.category) : '',
+                            type: proj.type ? capitalizeWords(proj.type) : '',
+                            duration: proj.duration ? capitalizeWords(proj.duration) : '',
+                            tech: (proj.tech || []).map(t => capitalizeWords(t)),
+                            techInput: proj.tech ? proj.tech.map(t => capitalizeWords(t)).join(', ') : '',
+                          });
                           setShowForm(true);
                           scrollToForm();
                         }}
@@ -1295,11 +1398,22 @@ export const AdminPage: React.FC = () => {
                   <button
                     onClick={() => {
                       if (!eduForm.degree) return;
+                      const finalEdu = {
+                        ...eduForm,
+                        degree: capitalizeWords(eduForm.degree),
+                        institution: capitalizeWords(eduForm.institution),
+                        location: eduForm.location ? capitalizeWords(eduForm.location) : '',
+                        specialization: eduForm.specialization ? capitalizeWords(eduForm.specialization) : '',
+                        type: eduForm.type ? capitalizeWords(eduForm.type) : '',
+                        period: eduForm.period ? capitalizeWords(eduForm.period) : '',
+                        score: eduForm.score ? capitalizeWords(eduForm.score) : '',
+                        statusBadge: eduForm.statusBadge ? capitalizeWords(eduForm.statusBadge) : '',
+                      };
                       if (editingEduIdx !== null) {
-                        updateEducation(editingEduIdx, eduForm);
+                        updateEducation(editingEduIdx, finalEdu);
                         setEditingEduIdx(null);
                       } else {
-                        addEducation(eduForm);
+                        addEducation(finalEdu);
                       }
                       setShowForm(false);
                     }}
@@ -1346,7 +1460,22 @@ export const AdminPage: React.FC = () => {
                   </div>
                   {canEdit && (
                     <div className="flex items-center gap-2">
-                      <button onClick={() => { setEditingEduIdx(idx); setEduForm(edu); setShowForm(true); scrollToForm(); }} className="p-2 rounded-xl bg-blue-500/20 text-blue-300"><Edit2 className="w-4 h-4" /></button>
+                      <button onClick={() => {
+                        setEditingEduIdx(idx);
+                        setEduForm({
+                          ...edu,
+                          degree: capitalizeWords(edu.degree),
+                          institution: capitalizeWords(edu.institution),
+                          location: edu.location ? capitalizeWords(edu.location) : '',
+                          specialization: edu.specialization ? capitalizeWords(edu.specialization) : '',
+                          type: edu.type ? capitalizeWords(edu.type) : '',
+                          period: edu.period ? capitalizeWords(edu.period) : '',
+                          score: edu.score ? capitalizeWords(edu.score) : '',
+                          statusBadge: edu.statusBadge ? capitalizeWords(edu.statusBadge) : '',
+                        });
+                        setShowForm(true);
+                        scrollToForm();
+                      }} className="p-2 rounded-xl bg-blue-500/20 text-blue-300"><Edit2 className="w-4 h-4" /></button>
                       <button
                         type="button"
                         onClick={() => confirmDelete(
@@ -1480,9 +1609,19 @@ export const AdminPage: React.FC = () => {
                   <button
                     onClick={() => {
                       if (!expForm.role || !expForm.company) return;
-                      const tagsList = (expForm.tagsInput ?? expForm.tags.join(', ')).split(',').map(t => t.trim()).filter(Boolean);
+                      const tagsList = (expForm.tagsInput ?? expForm.tags.join(', '))
+                        .split(',')
+                        .map(t => capitalizeWords(t.trim()))
+                        .filter(Boolean);
                       const { tagsInput, ...expToSave } = expForm;
-                      const finalExp = { ...expToSave, tags: tagsList };
+                      const finalExp = {
+                        ...expToSave,
+                        role: capitalizeWords(expToSave.role),
+                        company: capitalizeWords(expToSave.company),
+                        location: expToSave.location ? capitalizeWords(expToSave.location) : '',
+                        duration: expToSave.duration ? capitalizeWords(expToSave.duration) : '',
+                        tags: tagsList,
+                      };
                       if (editingExpIdx !== null) {
                         updateExperience(editingExpIdx, finalExp);
                         setEditingExpIdx(null);
@@ -1533,14 +1672,14 @@ export const AdminPage: React.FC = () => {
                       )}
 
                       <div>
-                        <div className="font-bold text-white text-sm flex items-center gap-2">
-                          <span>{exp.role}</span>
-                          <span className="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-300">{exp.company}</span>
+                        <div className="font-bold text-white text-sm flex items-center gap-2 font-mono">
+                          <span>{capitalizeWords(exp.role)}</span>
+                          <span className="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">{capitalizeWords(exp.company)}</span>
                         </div>
-                        <div className="text-xs text-gray-400 flex gap-2 mt-0.5">
-                          <span>{exp.location}</span>
-                          <span>•</span>
-                          <span>{exp.duration}</span>
+                        <div className="text-xs text-gray-400 flex items-center gap-2 mt-1">
+                          {exp.location && <span>{capitalizeWords(exp.location)}</span>}
+                          {exp.location && exp.duration && <span>•</span>}
+                          {exp.duration && <span>{capitalizeWords(exp.duration)}</span>}
                         </div>
                       </div>
                     </div>
@@ -1550,7 +1689,15 @@ export const AdminPage: React.FC = () => {
                         <button
                           onClick={() => {
                             setEditingExpIdx(idx);
-                            setExpForm({ ...exp, tagsInput: exp.tags ? exp.tags.join(', ') : '' });
+                            setExpForm({
+                              ...exp,
+                              role: capitalizeWords(exp.role),
+                              company: capitalizeWords(exp.company),
+                              location: exp.location ? capitalizeWords(exp.location) : '',
+                              duration: exp.duration ? capitalizeWords(exp.duration) : '',
+                              tags: (exp.tags || []).map(t => capitalizeWords(t)),
+                              tagsInput: exp.tags ? exp.tags.map(t => capitalizeWords(t)).join(', ') : '',
+                            });
                             setShowForm(true);
                             scrollToForm();
                           }}
@@ -1621,9 +1768,16 @@ export const AdminPage: React.FC = () => {
                   <button onClick={() => setShowForm(false)} className="px-4 py-2 rounded-xl bg-gray-700 text-white text-xs font-semibold">Cancel</button>
                   <button onClick={() => {
                     if (!srvForm.title) return;
-                    const techList = (srvForm.techInput ?? srvForm.tech.join(', ')).split(',').map(t => t.trim()).filter(Boolean);
+                    const techList = (srvForm.techInput ?? srvForm.tech.join(', '))
+                      .split(',')
+                      .map(t => capitalizeWords(t.trim()))
+                      .filter(Boolean);
                     const { techInput, ...srvToSave } = srvForm;
-                    const finalSrv = { ...srvToSave, tech: techList };
+                    const finalSrv = {
+                      ...srvToSave,
+                      title: capitalizeWords(srvToSave.title),
+                      tech: techList,
+                    };
                     if (editingSrvIdx !== null) { updateService(editingSrvIdx, finalSrv); setEditingSrvIdx(null); }
                     else { addService(finalSrv); }
                     setShowForm(false);
@@ -1666,7 +1820,17 @@ export const AdminPage: React.FC = () => {
                   </div>
                   {canEdit && (
                     <div className="flex items-center gap-2">
-                      <button onClick={() => { setEditingSrvIdx(idx); setSrvForm({ ...srv, techInput: srv.tech ? srv.tech.join(', ') : '' }); setShowForm(true); scrollToForm(); }} className="p-2 rounded-xl bg-blue-500/20 text-blue-300"><Edit2 className="w-4 h-4" /></button>
+                      <button onClick={() => {
+                        setEditingSrvIdx(idx);
+                        setSrvForm({
+                          ...srv,
+                          title: capitalizeWords(srv.title),
+                          tech: (srv.tech || []).map(t => capitalizeWords(t)),
+                          techInput: srv.tech ? srv.tech.map(t => capitalizeWords(t)).join(', ') : '',
+                        });
+                        setShowForm(true);
+                        scrollToForm();
+                      }} className="p-2 rounded-xl bg-blue-500/20 text-blue-300"><Edit2 className="w-4 h-4" /></button>
                       <button
                         type="button"
                         onClick={() => confirmDelete(
@@ -1724,9 +1888,16 @@ export const AdminPage: React.FC = () => {
                   <button onClick={() => setShowForm(false)} className="px-4 py-2 rounded-xl bg-gray-700 text-white text-xs font-semibold">Cancel</button>
                   <button onClick={() => {
                     if (!skillForm.category) return;
-                    const skillsList = (skillForm.skillsInput ?? skillForm.skills.join(', ')).split(',').map(s => s.trim()).filter(Boolean);
+                    const skillsList = (skillForm.skillsInput ?? skillForm.skills.join(', '))
+                      .split(',')
+                      .map(s => capitalizeWords(s.trim()))
+                      .filter(Boolean);
                     const { skillsInput, ...skillToSave } = skillForm;
-                    const finalSkill = { ...skillToSave, skills: skillsList };
+                    const finalSkill = {
+                      ...skillToSave,
+                      category: capitalizeWords(skillToSave.category),
+                      skills: skillsList,
+                    };
                     if (editingSkillIdx !== null) { updateSkillCategory(editingSkillIdx, finalSkill); setEditingSkillIdx(null); }
                     else { addSkillCategory(finalSkill); }
                     setShowForm(false);
@@ -1769,7 +1940,17 @@ export const AdminPage: React.FC = () => {
                   </div>
                   {canEdit && (
                     <div className="flex items-center gap-2">
-                      <button onClick={() => { setEditingSkillIdx(idx); setSkillForm({ ...sk, skillsInput: sk.skills ? sk.skills.join(', ') : '' }); setShowForm(true); scrollToForm(); }} className="p-2 rounded-xl bg-blue-500/20 text-blue-300"><Edit2 className="w-4 h-4" /></button>
+                      <button onClick={() => {
+                        setEditingSkillIdx(idx);
+                        setSkillForm({
+                          ...sk,
+                          category: capitalizeWords(sk.category),
+                          skills: (sk.skills || []).map(t => capitalizeWords(t)),
+                          skillsInput: sk.skills ? sk.skills.map(t => capitalizeWords(t)).join(', ') : '',
+                        });
+                        setShowForm(true);
+                        scrollToForm();
+                      }} className="p-2 rounded-xl bg-blue-500/20 text-blue-300"><Edit2 className="w-4 h-4" /></button>
                       <button
                         type="button"
                         onClick={() => confirmDelete(
@@ -1846,8 +2027,15 @@ export const AdminPage: React.FC = () => {
                   <button onClick={() => setShowForm(false)} className="px-4 py-2 rounded-xl bg-gray-700 text-white text-xs font-semibold">Cancel</button>
                   <button onClick={() => {
                     if (!certForm.title) return;
-                    if (editingCertIdx !== null) { updateCertification(editingCertIdx, certForm); setEditingCertIdx(null); }
-                    else { addCertification(certForm); }
+                    const finalCert = {
+                      ...certForm,
+                      title: capitalizeWords(certForm.title),
+                      provider: certForm.provider ? capitalizeWords(certForm.provider) : '',
+                      level: certForm.level ? capitalizeWords(certForm.level) : '',
+                      date: certForm.date ? capitalizeWords(certForm.date) : '',
+                    };
+                    if (editingCertIdx !== null) { updateCertification(editingCertIdx, finalCert); setEditingCertIdx(null); }
+                    else { addCertification(finalCert); }
                     setShowForm(false);
                   }} className="px-5 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold flex items-center gap-1">
                     <Check className="w-4 h-4" />
@@ -1896,7 +2084,18 @@ export const AdminPage: React.FC = () => {
                   </div>
                   {canEdit && (
                     <div className="flex items-center gap-2">
-                      <button onClick={() => { setEditingCertIdx(idx); setCertForm(cert); setShowForm(true); scrollToForm(); }} className="p-2 rounded-xl bg-blue-500/20 text-blue-300"><Edit2 className="w-4 h-4" /></button>
+                      <button onClick={() => {
+                        setEditingCertIdx(idx);
+                        setCertForm({
+                          ...cert,
+                          title: capitalizeWords(cert.title),
+                          provider: cert.provider ? capitalizeWords(cert.provider) : '',
+                          level: cert.level ? capitalizeWords(cert.level) : '',
+                          date: cert.date ? capitalizeWords(cert.date) : '',
+                        });
+                        setShowForm(true);
+                        scrollToForm();
+                      }} className="p-2 rounded-xl bg-blue-500/20 text-blue-300"><Edit2 className="w-4 h-4" /></button>
                       <button
                         type="button"
                         onClick={() => confirmDelete(

@@ -2,6 +2,7 @@ import { Users, User } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import { DEFAULT_PORTFOLIO_CSV } from "@/data/defaultPortfolioCsv";
 import { obfuscateText, deobfuscateText } from "./hash";
+import { capitalizeWords } from "./utils";
 
 export interface ExperienceItem {
   id?: string;
@@ -176,12 +177,12 @@ export const parseCSVData = (csvText: string): PortfolioData => {
         experiences.push({
           id: `exp-${i}`,
           order,
-          role,
-          company: data[`exp${i}_company`] || '',
-          location: data[`exp${i}_location`] || '',
-          duration: data[`exp${i}_duration`] || '',
+          role: capitalizeWords(role),
+          company: capitalizeWords(data[`exp${i}_company`] || ''),
+          location: data[`exp${i}_location`] ? capitalizeWords(data[`exp${i}_location`]) : '',
+          duration: data[`exp${i}_duration`] ? capitalizeWords(data[`exp${i}_duration`]) : '',
           summary: data[`exp${i}_summary`] || '',
-          tags: (data[`exp${i}_tags`] || '').split(',').map(t => t.trim()).filter(Boolean),
+          tags: (data[`exp${i}_tags`] || '').split(',').map(t => capitalizeWords(t.trim())).filter(Boolean),
           gradient: data[`exp${i}_gradient`] || 'from-primary to-primary-glow',
         });
       }
@@ -199,12 +200,12 @@ export const parseCSVData = (csvText: string): PortfolioData => {
 
         projects.push({
           order,
-          title,
+          title: capitalizeWords(title),
           description: data[`project${i}_description`] || '',
-          tech: (data[`project${i}_tech`] || '').split(',').map(t => t.trim()).filter(t => t),
-          type: data[`project${i}_type`] || '',
-          duration: data[`project${i}_duration`] || '',
-          category: data[`project${i}_category`] || '',
+          tech: (data[`project${i}_tech`] || '').split(',').map(t => capitalizeWords(t.trim())).filter(t => t),
+          type: data[`project${i}_type`] ? capitalizeWords(data[`project${i}_type`]) : '',
+          duration: data[`project${i}_duration`] ? capitalizeWords(data[`project${i}_duration`]) : '',
+          category: data[`project${i}_category`] ? capitalizeWords(data[`project${i}_category`]) : '',
           github: data[`project${i}_github`] || null,
           live: data[`project${i}_live`] || null,
           progress,
@@ -221,12 +222,12 @@ export const parseCSVData = (csvText: string): PortfolioData => {
         const order = !isNaN(rawOrder) ? rawOrder : i;
         certifications.push({
           order,
-          title,
-          provider: data[`cert${i}_provider`] || '',
-          date: data[`cert${i}_date`] || '',
+          title: capitalizeWords(title),
+          provider: data[`cert${i}_provider`] ? capitalizeWords(data[`cert${i}_provider`]) : '',
+          date: data[`cert${i}_date`] ? capitalizeWords(data[`cert${i}_date`]) : '',
           certificateId: data[`cert${i}_id`] || '',
           link: data[`cert${i}_link`] || '',
-          level: data[`cert${i}_level`] || '',
+          level: data[`cert${i}_level`] ? capitalizeWords(data[`cert${i}_level`]) : '',
         });
       }
     }
@@ -244,14 +245,14 @@ export const parseCSVData = (csvText: string): PortfolioData => {
         }
         educationList.push({
           order,
-          type: data[`edu${i}_type`] || (i === 1 ? 'Degree' : i === 2 ? 'High School' : 'Secondary School'),
-          institution: data[`edu${i}_institution`] || '',
-          location: data[`edu${i}_location`] || '',
-          degree,
-          specialization: data[`edu${i}_specialization`] || '',
-          period: data[`edu${i}_period`] || '',
-          score,
-          statusBadge: data[`edu${i}_status`] || (i === 1 ? 'Currently Enrolled' : 'Completed'),
+          type: capitalizeWords(data[`edu${i}_type`] || (i === 1 ? 'Degree' : i === 2 ? 'High School' : 'Secondary School')),
+          institution: capitalizeWords(data[`edu${i}_institution`] || ''),
+          location: data[`edu${i}_location`] ? capitalizeWords(data[`edu${i}_location`]) : '',
+          degree: capitalizeWords(degree),
+          specialization: data[`edu${i}_specialization`] ? capitalizeWords(data[`edu${i}_specialization`]) : '',
+          period: data[`edu${i}_period`] ? capitalizeWords(data[`edu${i}_period`]) : '',
+          score: data[`edu${i}_score`] ? capitalizeWords(data[`edu${i}_score`]) : score,
+          statusBadge: capitalizeWords(data[`edu${i}_status`] || (i === 1 ? 'Currently Enrolled' : 'Completed')),
           isPrimary: i === 1,
         });
       }
@@ -266,9 +267,9 @@ export const parseCSVData = (csvText: string): PortfolioData => {
         const order = !isNaN(rawOrder) ? rawOrder : i;
         servicesList.push({
           order,
-          title,
+          title: capitalizeWords(title),
           desc: data[`service${i}_desc`] || '',
-          tech: (data[`service${i}_tech`] || '').split(',').map(t => t.trim()).filter(t => t),
+          tech: (data[`service${i}_tech`] || '').split(',').map(t => capitalizeWords(t.trim())).filter(t => t),
         });
       }
     }
@@ -282,8 +283,8 @@ export const parseCSVData = (csvText: string): PortfolioData => {
         const order = !isNaN(rawOrder) ? rawOrder : i;
         skillsList.push({
           order,
-          category,
-          skills: (data[`skill${i}_items`] || '').split(',').map(s => s.trim()).filter(s => s),
+          category: capitalizeWords(category),
+          skills: (data[`skill${i}_items`] || '').split(',').map(s => capitalizeWords(s.trim())).filter(s => s),
         });
       }
     }
@@ -297,9 +298,9 @@ export const parseCSVData = (csvText: string): PortfolioData => {
         const order = !isNaN(rawOrder) ? rawOrder : i;
         statsList.push({
           order,
-          label,
+          label: capitalizeWords(label),
           value: data[`stat${i}_value`] || '',
-          subtext: data[`stat${i}_subtext`] || '',
+          subtext: data[`stat${i}_subtext`] ? capitalizeWords(data[`stat${i}_subtext`]) : '',
         });
       }
     }
@@ -360,22 +361,22 @@ export const parseCSVData = (csvText: string): PortfolioData => {
     }
 
     return {
-      name: data.name || '',
-      title: data.title || '',
-      specialization: data.specialization || '',
-      education: data.education || '',
+      name: data.name ? capitalizeWords(data.name) : '',
+      title: data.title ? capitalizeWords(data.title) : '',
+      specialization: data.specialization ? capitalizeWords(data.specialization) : '',
+      education: data.education ? capitalizeWords(data.education) : '',
       cgpa: data.cgpa || '',
       email: data.email || '',
       phone: data.phone || '',
-      address: data.address || '',
+      address: data.address ? capitalizeWords(data.address) : '',
       github_username: data.github_username || '',
       github_link: data.github_link || '',
       linkedin_username: data.linkedin_username || '',
       linkedin_link: data.linkedin_link || '',
       leetcode_username: data.leetcode_username || '',
       leetcode_link: data.leetcode_link || '',
-      statusBadge: data.status_badge || '',
-      heroTags,
+      statusBadge: data.status_badge ? capitalizeWords(data.status_badge) : '',
+      heroTags: heroTags.map(capitalizeWords),
       bioSummary: data.bio_summary || '',
       resumes,
       experiences,

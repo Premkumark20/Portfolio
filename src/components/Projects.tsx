@@ -2,10 +2,11 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Github, ArrowUpRight, Sparkles, CheckCircle2, Clock, ShieldCheck, Cpu, Home, X, Code2, ChevronDown, ChevronUp } from "lucide-react";
+import { Github, ArrowUpRight, Sparkles, CheckCircle2, Clock, ShieldCheck, Cpu, Home, X, Code2, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import { TiltCard } from "@/components/ui/TiltCard";
 import { fetchPortfolioData } from "@/lib/csvData";
 import { usePortfolio } from "@/context/PortfolioContext";
+import { capitalizeWords } from "@/lib/utils";
 
 interface Project {
   id: number;
@@ -17,6 +18,7 @@ interface Project {
   description: string;
   tech: string[];
   githubUrl: string;
+  liveUrl: string;
   gradient: string;
   icon: React.ElementType;
   highlights: string[];
@@ -50,6 +52,7 @@ const Projects: React.FC = () => {
         description: p.description,
         tech: p.tech,
         githubUrl: p.github || 'https://github.com/Premkumark20',
+        liveUrl: p.live || '',
         gradient: defaultGradients[idx % defaultGradients.length],
         icon: defaultIcons[idx % defaultIcons.length],
         highlights: [
@@ -130,10 +133,10 @@ const Projects: React.FC = () => {
                     {/* Title & Timeline */}
                     <div className="space-y-0.5 mb-2.5">
                       <h3 className="text-base sm:text-xl font-bold text-white group-hover:text-blue-300 transition-colors leading-snug">
-                        {project.title}
+                        {capitalizeWords(project.title)}
                       </h3>
                       <div className="text-xs text-blue-400 font-medium">
-                        {project.category}
+                        {capitalizeWords(project.category)}
                       </div>
                     </div>
 
@@ -186,33 +189,49 @@ const Projects: React.FC = () => {
                           key={t}
                           className="px-2.5 py-0.5 rounded-md text-[11px] font-mono bg-white/5 text-gray-300 border border-white/10"
                         >
-                          {t}
+                          {capitalizeWords(t)}
                         </span>
                       ))}
                     </div>
                   </div>
 
                   {/* Card Actions */}
-                  <div className="pt-4 border-t border-white/10 flex items-center justify-between">
-                    <a
-                      href={project.githubUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
-                    >
-                      <Github className="w-3.5 h-3.5 text-blue-400" />
-                      <span>GitHub Code</span>
-                    </a>
+                  <div className="pt-4 border-t border-white/10 flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {project.githubUrl && (
+                        <a
+                          href={project.githubUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
+                        >
+                          <Github className="w-3.5 h-3.5 text-blue-400" />
+                          <span>GitHub</span>
+                        </a>
+                      )}
+                      {project.liveUrl && (
+                        <a
+                          href={project.liveUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-emerald-300 bg-emerald-500/15 hover:bg-emerald-500/30 border border-emerald-500/30 transition-all shadow-sm shadow-emerald-500/10"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Live Demo</span>
+                        </a>
+                      )}
+                    </div>
 
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedProject(project);
                       }}
-                      className="flex items-center gap-1 text-xs font-semibold text-blue-400 hover:text-white transition-colors"
+                      className="flex items-center gap-1 text-xs font-semibold text-blue-400 hover:text-white transition-colors ml-auto"
                     >
-                      <span>View Details</span>
+                      <span>Details</span>
                       <ArrowUpRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -341,7 +360,18 @@ const Projects: React.FC = () => {
             </div>
 
             {/* Actions */}
-            <div className="pt-4 border-t border-white/10 flex items-center gap-4">
+            <div className="pt-4 border-t border-white/10 flex items-center gap-3 flex-wrap">
+              {selectedProject.liveUrl && (
+                <a
+                  href={selectedProject.liveUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 shadow-lg shadow-emerald-600/30 transition-all"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span>Live Demo ↗</span>
+                </a>
+              )}
               <a
                 href={selectedProject.githubUrl}
                 target="_blank"

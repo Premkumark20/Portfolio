@@ -124,6 +124,55 @@ function resumeStoragePlugin() {
           return;
         }
 
+        if ((req.url === '/api/resume/rename' || req.url?.startsWith('/api/resume/rename')) && (req.method === 'POST' || req.method === 'PUT')) {
+          let body = '';
+          req.on('data', (chunk: any) => { body += chunk; });
+          req.on('end', () => {
+            try {
+              let oldFileName = '';
+              let newFileName = '';
+              if (body) {
+                try {
+                  const parsed = JSON.parse(body);
+                  oldFileName = parsed.oldFileName || parsed.oldName || '';
+                  newFileName = parsed.newFileName || parsed.newName || '';
+                } catch {}
+              }
+              if (!oldFileName || !newFileName) {
+                res.statusCode = 400;
+                res.end(JSON.stringify({ error: 'Missing oldFileName or newFileName' }));
+                return;
+              }
+
+              const safeOldName = path.basename(oldFileName);
+              const safeNewName = path.basename(newFileName);
+
+              const publicDir = path.resolve(__dirname, 'public/resume');
+              const oldPublicPath = path.join(publicDir, safeOldName);
+              const newPublicPath = path.join(publicDir, safeNewName);
+
+              if (fs.existsSync(oldPublicPath)) {
+                fs.renameSync(oldPublicPath, newPublicPath);
+              }
+
+              const distDir = path.resolve(__dirname, 'dist/resume');
+              const oldDistPath = path.join(distDir, safeOldName);
+              const newDistPath = path.join(distDir, safeNewName);
+
+              if (fs.existsSync(oldDistPath)) {
+                fs.renameSync(oldDistPath, newDistPath);
+              }
+
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ success: true, newPath: `/resume/${safeNewName}` }));
+            } catch (err: any) {
+              res.statusCode = 500;
+              res.end(JSON.stringify({ error: err.message }));
+            }
+          });
+          return;
+        }
+
         next();
       });
     }

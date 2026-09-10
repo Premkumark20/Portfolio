@@ -4,6 +4,7 @@ import { GraduationCap, School, Calendar } from "lucide-react";
 import { TiltCard } from "@/components/ui/TiltCard";
 import { fetchPortfolioData } from "@/lib/csvData";
 import { usePortfolio } from "@/context/PortfolioContext";
+import { capitalizeWords } from "@/lib/utils";
 
 interface EducationItem {
   type: string;
@@ -87,7 +88,7 @@ const Education: React.FC = () => {
                         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-blue-500/15 text-blue-300 border border-blue-500/30">
                             <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                            {item.period}
+                            {capitalizeWords(item.period)}
                           </span>
 
                           <span
@@ -97,21 +98,21 @@ const Education: React.FC = () => {
                                 : "bg-white/5 text-gray-300 border-white/10"
                             }`}
                           >
-                            {item.statusBadge}
+                            {capitalizeWords(item.statusBadge)}
                           </span>
                         </div>
 
                         {/* Institution Title */}
                         <h3 className="text-base sm:text-xl font-bold text-white mb-1 leading-snug">
-                          {item.institution}
+                          {capitalizeWords(item.institution)}
                         </h3>
                         <div className="text-xs sm:text-sm font-semibold text-gradient-purple mb-2">
-                          {item.degree}
+                          {capitalizeWords(item.degree)}
                         </div>
 
                         {/* Specialization & Score */}
                         <div className="flex items-center justify-between text-[11px] sm:text-xs text-gray-400 pt-2 border-t border-white/10">
-                          <span>{item.specialization}</span>
+                          <span>{capitalizeWords(item.specialization)}</span>
                           <span className="font-mono text-cyan-300 font-bold bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
                             {item.score}
                           </span>

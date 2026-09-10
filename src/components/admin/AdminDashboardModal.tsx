@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { usePortfolio } from '@/context/PortfolioContext';
 import { ExperienceItem, PortfolioData } from '@/lib/csvData';
+import { capitalizeWords } from '@/lib/utils';
 
 interface AdminDashboardModalProps {
   isOpen: boolean;
@@ -518,7 +519,14 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                       <button
                         onClick={() => {
                           setEditingProjectIndex(idx);
-                          setProjForm(proj);
+                          setProjForm({
+                            ...proj,
+                            title: capitalizeWords(proj.title),
+                            category: proj.category ? capitalizeWords(proj.category) : '',
+                            type: proj.type ? capitalizeWords(proj.type) : '',
+                            duration: proj.duration ? capitalizeWords(proj.duration) : '',
+                            tech: (proj.tech || []).map(t => capitalizeWords(t)),
+                          });
                         }}
                         className="p-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-300"
                         title="Edit Project"
@@ -707,7 +715,17 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                       <button
                         onClick={() => {
                           setEditingEduIndex(idx);
-                          setEduForm(edu);
+                          setEduForm({
+                            ...edu,
+                            degree: capitalizeWords(edu.degree),
+                            institution: capitalizeWords(edu.institution),
+                            location: edu.location ? capitalizeWords(edu.location) : '',
+                            specialization: edu.specialization ? capitalizeWords(edu.specialization) : '',
+                            type: edu.type ? capitalizeWords(edu.type) : '',
+                            period: edu.period ? capitalizeWords(edu.period) : '',
+                            score: edu.score ? capitalizeWords(edu.score) : '',
+                            statusBadge: edu.statusBadge ? capitalizeWords(edu.statusBadge) : '',
+                          });
                         }}
                         className="p-1.5 rounded-lg bg-blue-500/20 text-blue-300"
                         title="Edit"
@@ -836,11 +854,19 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                   <button
                     onClick={() => {
                       if (!expForm.role || !expForm.company) return;
+                      const formattedExp = {
+                        ...expForm,
+                        role: capitalizeWords(expForm.role),
+                        company: capitalizeWords(expForm.company),
+                        location: expForm.location ? capitalizeWords(expForm.location) : '',
+                        duration: expForm.duration ? capitalizeWords(expForm.duration) : '',
+                        tags: (expForm.tags || []).map(t => capitalizeWords(t)),
+                      };
                       if (editingExperienceIndex !== null) {
-                        updateExperience(editingExperienceIndex, expForm);
+                        updateExperience(editingExperienceIndex, formattedExp);
                         setEditingExperienceIndex(null);
                       } else {
-                        addExperience(expForm);
+                        addExperience(formattedExp);
                       }
                       setExpForm({
                         role: '',
@@ -911,7 +937,14 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                       <button
                         onClick={() => {
                           setEditingExperienceIndex(idx);
-                          setExpForm(exp);
+                          setExpForm({
+                            ...exp,
+                            role: capitalizeWords(exp.role),
+                            company: capitalizeWords(exp.company),
+                            location: exp.location ? capitalizeWords(exp.location) : '',
+                            duration: exp.duration ? capitalizeWords(exp.duration) : '',
+                            tags: (exp.tags || []).map(t => capitalizeWords(t)),
+                          });
                         }}
                         className="p-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-300"
                         title="Edit"
@@ -1028,7 +1061,14 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                       >
                         <ChevronDown className="w-4 h-4" />
                       </button>
-                      <button onClick={() => { setEditingSrvIndex(idx); setSrvForm(srv); }} className="p-1.5 rounded-lg bg-blue-500/20 text-blue-300" title="Edit"><Edit2 className="w-4 h-4" /></button>
+                      <button onClick={() => {
+                        setEditingSrvIndex(idx);
+                        setSrvForm({
+                          ...srv,
+                          title: capitalizeWords(srv.title),
+                          tech: (srv.tech || []).map(t => capitalizeWords(t)),
+                        });
+                      }} className="p-1.5 rounded-lg bg-blue-500/20 text-blue-300" title="Edit"><Edit2 className="w-4 h-4" /></button>
                       <button onClick={() => deleteService(idx)} className="p-1.5 rounded-lg bg-red-500/20 text-red-300" title="Delete"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </div>
@@ -1124,7 +1164,14 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                       >
                         <ChevronDown className="w-4 h-4" />
                       </button>
-                      <button onClick={() => { setEditingSkillIndex(idx); setSkillForm(sk); }} className="p-1.5 rounded-lg bg-blue-500/20 text-blue-300" title="Edit"><Edit2 className="w-4 h-4" /></button>
+                      <button onClick={() => {
+                        setEditingSkillIndex(idx);
+                        setSkillForm({
+                          ...sk,
+                          category: capitalizeWords(sk.category),
+                          skills: (sk.skills || []).map(t => capitalizeWords(t)),
+                        });
+                      }} className="p-1.5 rounded-lg bg-blue-500/20 text-blue-300" title="Edit"><Edit2 className="w-4 h-4" /></button>
                       <button onClick={() => deleteSkillCategory(idx)} className="p-1.5 rounded-lg bg-red-500/20 text-red-300" title="Delete"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </div>
@@ -1241,7 +1288,16 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                       >
                         <ChevronDown className="w-4 h-4" />
                       </button>
-                      <button onClick={() => { setEditingCertIndex(idx); setCertForm(cert); }} className="p-1.5 rounded-lg bg-blue-500/20 text-blue-300" title="Edit"><Edit2 className="w-4 h-4" /></button>
+                      <button onClick={() => {
+                        setEditingCertIndex(idx);
+                        setCertForm({
+                          ...cert,
+                          title: capitalizeWords(cert.title),
+                          provider: cert.provider ? capitalizeWords(cert.provider) : '',
+                          level: cert.level ? capitalizeWords(cert.level) : '',
+                          date: cert.date ? capitalizeWords(cert.date) : '',
+                        });
+                      }} className="p-1.5 rounded-lg bg-blue-500/20 text-blue-300" title="Edit"><Edit2 className="w-4 h-4" /></button>
                       <button onClick={() => deleteCertification(idx)} className="p-1.5 rounded-lg bg-red-500/20 text-red-300" title="Delete"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </div>
