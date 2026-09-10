@@ -206,11 +206,3 @@ edu3_specialization,State Board Secondary Education
 edu3_period,2020 - 2021
 edu3_score,88.40%
 edu3_status,Completed
-temp_cred_user_hash,51dc3a6e9b6f20d7:3dec2f7355bf2d507de74b3c2650455a2a2c5a58783dd11b1d262698a05a2cf8
-temp_cred_pass_hash,3fdd58dcd624131e:2c5cd73e0b287265ffe8408c5e0b14d9c9f8eedfd49ad6a33590f0855f43ba8d
-temp_cred_expires_at,1789304504931
-temp_cred_created_at,1789045304931
-temp_cred_duration,3 days
-temp_cred_permission,edit
-temp_cred_plain_username,prem
-temp_cred_plain_password,enc:v1:23103c78:000f00fd00e400b000f3005800150010
